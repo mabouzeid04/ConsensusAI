@@ -47,26 +47,35 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-base-200">
       <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">History</h1>
+        <h1 className="text-3xl font-bold mb-6 text-base-content">History</h1>
         {items.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow p-8 text-center text-gray-600">No history yet.</div>
+          <div className="bg-base-100 rounded-2xl shadow p-8 text-center text-base-content/70">No history yet.</div>
         ) : (
           <div className="space-y-4">
             {items.map((item) => (
               <Link key={item.id} href={`/history/${item.id}`} className="block">
-                <div className="bg-white rounded-xl shadow p-6 hover:shadow-md transition">
+                <div className="bg-base-100 rounded-xl shadow p-6 hover:shadow-md transition">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm text-gray-500">
-                      {new Date(item.createdAt).toLocaleString()}
+                    <div className="text-sm text-base-content/60">
+                      {new Date(item.createdAt).toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                      })}
                     </div>
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-base-content/80">
                       <span className="mr-4">Responses: {item.summary.numResponses}</span>
                       <span>Best avg: {item.summary.bestAverage.toFixed(1)}</span>
                     </div>
                   </div>
-                  <div className="text-gray-800 line-clamp-2">{item.prompt}</div>
+                  <div className="text-base-content line-clamp-2" title={item.prompt}>
+                    {item.prompt.length > 160 ? `${item.prompt.slice(0, 160)}…` : item.prompt}
+                  </div>
                 </div>
               </Link>
             ))

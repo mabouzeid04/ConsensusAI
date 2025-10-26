@@ -32,64 +32,76 @@ exports.fetchGemini25ProEvaluation = fetchGemini25ProEvaluation;
 exports.fetchGrok4Evaluation = fetchGrok4Evaluation;
 const axios_1 = __importDefault(require("axios"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const sdk_1 = require("@anthropic-ai/sdk");
-const anthropic = new sdk_1.Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
-});
+const genai_1 = require("@google/genai");
+const openai_1 = require("openai");
 dotenv_1.default.config();
+// Initialize Google GenAI client
+const googleAI = new genai_1.GoogleGenAI({
+    apiKey: process.env.GOOGLE_API_KEY
+});
+// Initialize OpenAI client
+const openai = new openai_1.OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
 // Shared axios instance with timeouts
 const http = axios_1.default.create({
     timeout: 60000,
 });
 // Model IDs with sensible defaults, overridable via env
-const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5-mini';
+const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5';
 const OPENAI_GPT5_HIGH_MODEL = process.env.OPENAI_GPT5_HIGH_MODEL || 'gpt-5';
-const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-4.5-sonnet';
-const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'deepseek-v3';
+const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-sonnet-4-5-20250929';
+const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'DeepSeek-V3.2-Exp';
 const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
 // -----------------
 // OpenAI (GPT-5)
 // -----------------
 function fetchGpt5LowResponse(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
         try {
-            const response = yield http.post('https://api.openai.com/v1/responses', {
-                model: 'gpt-5',
-                input: prompt,
-                reasoning: { effort: 'low' },
-                temperature: 0.7,
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
+            const response = yield openai.responses.create({
+                model: OPENAI_GPT5_LOW_MODEL,
+                input: [
+                    { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+                ],
+                max_output_tokens: 4096,
             });
-            return response.data.output[0].content[0].text;
+            const text = response.output_text || '';
+            return text;
         }
         catch (error) {
-            console.error('Error fetching GPT-5 Low reasoning response:', error);
+            const err = error;
+            console.error('Error fetching GPT-5 Low reasoning response:', {
+                message: err === null || err === void 0 ? void 0 : err.message,
+                status: (_a = err === null || err === void 0 ? void 0 : err.response) === null || _a === void 0 ? void 0 : _a.status,
+                data: (_b = err === null || err === void 0 ? void 0 : err.response) === null || _b === void 0 ? void 0 : _b.data,
+            });
             throw error;
         }
     });
 }
 function fetchGpt5HighResponse(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
         try {
-            const response = yield http.post('https://api.openai.com/v1/responses', {
-                model: 'gpt-5',
-                input: prompt,
-                reasoning: { effort: 'high' },
-                temperature: 0.7,
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
+            const response = yield openai.responses.create({
+                model: OPENAI_GPT5_HIGH_MODEL,
+                input: [
+                    { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+                ],
+                max_output_tokens: 4096,
             });
-            return response.data.output[0].content[0].text;
+            const text = response.output_text || '';
+            return text;
         }
         catch (error) {
-            console.error('Error fetching GPT-5 High reasoning response:', error);
+            const err = error;
+            console.error('Error fetching GPT-5 High reasoning response:', {
+                message: err === null || err === void 0 ? void 0 : err.message,
+                status: (_a = err === null || err === void 0 ? void 0 : err.response) === null || _a === void 0 ? void 0 : _a.status,
+                data: (_b = err === null || err === void 0 ? void 0 : err.response) === null || _b === void 0 ? void 0 : _b.data,
+            });
             throw error;
         }
     });
@@ -97,18 +109,21 @@ function fetchGpt5HighResponse(prompt) {
 function fetchClaudeSonnetResponse(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const apiResponse = yield anthropic.messages.create({
-                model: 'claude-3-7-sonnet-20250219',
-                max_tokens: 1000,
+            const apiResponse = yield http.post('https://api.anthropic.com/v1/messages', {
+                model: ANTHROPIC_SONNET_45_MODEL,
+                max_tokens: 4096,
                 messages: [
                     { role: 'user', content: prompt }
-                ]
+                ],
+                temperature: 0.7
+            }, {
+                headers: {
+                    'x-api-key': process.env.ANTHROPIC_API_KEY,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                }
             });
-            let content = '';
-            if (apiResponse.content[0].type === 'text') {
-                content = apiResponse.content[0].text;
-            }
-            return content;
+            return apiResponse.data.content[0].text;
         }
         catch (error) {
             console.error('Error fetching Claude 3.7 Sonnet response:', error);
@@ -119,18 +134,21 @@ function fetchClaudeSonnetResponse(prompt) {
 function fetchClaude45SonnetResponse(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const apiResponse = yield anthropic.messages.create({
+            const apiResponse = yield http.post('https://api.anthropic.com/v1/messages', {
                 model: ANTHROPIC_SONNET_45_MODEL,
-                max_tokens: 1000,
+                max_tokens: 4096,
                 messages: [
                     { role: 'user', content: prompt }
-                ]
+                ],
+                temperature: 0.7
+            }, {
+                headers: {
+                    'x-api-key': process.env.ANTHROPIC_API_KEY,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                }
             });
-            let content = '';
-            if (apiResponse.content[0].type === 'text') {
-                content = apiResponse.content[0].text;
-            }
-            return content;
+            return apiResponse.data.content[0].text;
         }
         catch (error) {
             console.error('Error fetching Claude 4.5 Sonnet response:', error);
@@ -141,21 +159,22 @@ function fetchClaude45SonnetResponse(prompt) {
 function fetchDeepSeekR1Response(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield http.post('https://api.deepseek.com/v1/chat/completions', {
+            const response = yield http.post('https://api.deepseek.com/chat/completions', {
                 model: 'deepseek-reasoner',
                 messages: [
-                    { role: 'system', content: 'You are a helpful assistant.' },
                     { role: 'user', content: prompt }
                 ],
-                temperature: 0.7,
-                max_tokens: 1000
+                max_tokens: 32768,
+                stream: false
             }, {
                 headers: {
                     'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
                     'Content-Type': 'application/json'
                 }
             });
-            return response.data.choices[0].message.content;
+            const reasoning = response.data.choices[0].message.reasoning_content;
+            const answer = response.data.choices[0].message.content;
+            return answer;
         }
         catch (error) {
             console.error('Error fetching DeepSeek R1 response:', error);
@@ -166,14 +185,13 @@ function fetchDeepSeekR1Response(prompt) {
 function fetchDeepSeekV3Response(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield http.post('https://api.deepseek.com/v1/chat/completions', {
+            const response = yield http.post('https://api.deepseek.com/chat/completions', {
                 model: DEEPSEEK_V3_MODEL,
                 messages: [
-                    { role: 'system', content: 'You are a helpful assistant.' },
                     { role: 'user', content: prompt }
                 ],
                 temperature: 0.7,
-                max_tokens: 1000
+                stream: false
             }, {
                 headers: {
                     'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
@@ -191,23 +209,14 @@ function fetchDeepSeekV3Response(prompt) {
 function fetchGemini2Response(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield http.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
-                contents: [
-                    {
-                        parts: [
-                            { text: prompt }
-                        ]
-                    }
-                ],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1000
-                }
+            const response = yield googleAI.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt
             });
-            return response.data.candidates[0].content.parts[0].text;
+            return response.text || '';
         }
         catch (error) {
-            console.error('Error fetching Gemini 2.0 Flash response:', error);
+            console.error('Error fetching Gemini 2.5 Flash response:', error);
             throw error;
         }
     });
@@ -215,20 +224,11 @@ function fetchGemini2Response(prompt) {
 function fetchGemini25ProResponse(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield http.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
-                contents: [
-                    {
-                        parts: [
-                            { text: prompt }
-                        ]
-                    }
-                ],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1000
-                }
+            const response = yield googleAI.models.generateContent({
+                model: 'gemini-2.5-pro',
+                contents: prompt
             });
-            return response.data.candidates[0].content.parts[0].text;
+            return response.text || '';
         }
         catch (error) {
             console.error('Error fetching Gemini 2.5 Pro response:', error);
@@ -250,6 +250,7 @@ function fetchGrok4Response(prompt) {
                     { role: 'user', content: prompt }
                 ],
                 temperature: 0.7,
+                max_tokens: 4096,
             }, {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
@@ -267,56 +268,60 @@ function fetchGrok4Response(prompt) {
 // Evaluation functions
 function fetchGpt5LowEvaluation(prompt, responses) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
         try {
             const evaluations = [];
             for (const responseItem of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, responseItem.label || '', responseItem.response);
-                const apiResponse = yield http.post('https://api.openai.com/v1/responses', {
-                    model: 'gpt-5',
-                    input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
-                    reasoning: { effort: 'low' },
-                    temperature: 0.3,
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
+                const apiResponse = yield openai.responses.create({
+                    model: OPENAI_GPT5_LOW_MODEL,
+                    input: [
+                        { role: 'user', content: [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }] }
+                    ],
+                    max_output_tokens: 4096,
                 });
-                const content = apiResponse.data.output[0].content[0].text;
+                const content = apiResponse.output_text || '';
                 evaluations.push(parseEvaluation(content));
             }
             return evaluations;
         }
         catch (error) {
-            console.error('Error evaluating with GPT-5 Low:', error);
+            const err = error;
+            console.error('Error evaluating with GPT-5 Low:', {
+                message: err === null || err === void 0 ? void 0 : err.message,
+                status: (_a = err === null || err === void 0 ? void 0 : err.response) === null || _a === void 0 ? void 0 : _a.status,
+                data: (_b = err === null || err === void 0 ? void 0 : err.response) === null || _b === void 0 ? void 0 : _b.data,
+            });
             throw error;
         }
     });
 }
 function fetchGpt5HighEvaluation(prompt, responses) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
         try {
             const evaluations = [];
             for (const responseItem of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, responseItem.label || '', responseItem.response);
-                const apiResponse = yield http.post('https://api.openai.com/v1/responses', {
-                    model: 'gpt-5',
-                    input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
-                    reasoning: { effort: 'high' },
-                    temperature: 0.3,
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
+                const apiResponse = yield openai.responses.create({
+                    model: OPENAI_GPT5_HIGH_MODEL,
+                    input: [
+                        { role: 'user', content: [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }] }
+                    ],
+                    max_output_tokens: 4096,
                 });
-                const content = apiResponse.data.output[0].content[0].text;
+                const content = apiResponse.output_text || '';
                 evaluations.push(parseEvaluation(content));
             }
             return evaluations;
         }
         catch (error) {
-            console.error('Error evaluating with GPT-5 High:', error);
+            const err = error;
+            console.error('Error evaluating with GPT-5 High:', {
+                message: err === null || err === void 0 ? void 0 : err.message,
+                status: (_a = err === null || err === void 0 ? void 0 : err.response) === null || _a === void 0 ? void 0 : _a.status,
+                data: (_b = err === null || err === void 0 ? void 0 : err.response) === null || _b === void 0 ? void 0 : _b.data,
+            });
             throw error;
         }
     });
@@ -327,17 +332,20 @@ function fetchClaudeSonnetEvaluation(prompt, responses) {
             const evaluations = [];
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-                const apiResponse = yield anthropic.messages.create({
-                    model: 'claude-3-7-sonnet-20250219',
-                    max_tokens: 1000,
+                const apiResponse = yield http.post('https://api.anthropic.com/v1/messages', {
+                    model: ANTHROPIC_SONNET_45_MODEL,
+                    max_tokens: 4096,
                     messages: [
                         { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
                     ]
+                }, {
+                    headers: {
+                        'x-api-key': process.env.ANTHROPIC_API_KEY,
+                        'anthropic-version': '2023-06-01',
+                        'content-type': 'application/json'
+                    }
                 });
-                let content = "";
-                if (apiResponse.content[0].type === 'text') {
-                    content = apiResponse.content[0].text;
-                }
+                const content = apiResponse.data.content[0].text;
                 const evaluation = parseEvaluation(content);
                 evaluations.push(evaluation);
             }
@@ -355,17 +363,20 @@ function fetchClaude45SonnetEvaluation(prompt, responses) {
             const evaluations = [];
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-                const apiResponse = yield anthropic.messages.create({
+                const apiResponse = yield http.post('https://api.anthropic.com/v1/messages', {
                     model: ANTHROPIC_SONNET_45_MODEL,
-                    max_tokens: 1000,
+                    max_tokens: 4096,
                     messages: [
                         { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
                     ]
+                }, {
+                    headers: {
+                        'x-api-key': process.env.ANTHROPIC_API_KEY,
+                        'anthropic-version': '2023-06-01',
+                        'content-type': 'application/json'
+                    }
                 });
-                let content = '';
-                if (apiResponse.content[0].type === 'text') {
-                    content = apiResponse.content[0].text;
-                }
+                const content = apiResponse.data.content[0].text;
                 evaluations.push(parseEvaluation(content));
             }
             return evaluations;
@@ -382,14 +393,13 @@ function fetchDeepSeekR1Evaluation(prompt, responses) {
             const evaluations = [];
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-                const apiResponse = yield http.post('https://api.deepseek.com/v1/chat/completions', {
+                const apiResponse = yield http.post('https://api.deepseek.com/chat/completions', {
                     model: 'deepseek-reasoner',
                     messages: [
-                        { role: 'system', content: 'You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.' },
                         { role: 'user', content: evaluationPrompt }
                     ],
-                    temperature: 0.3,
-                    max_tokens: 1000
+                    max_tokens: 32768,
+                    stream: false
                 }, {
                     headers: {
                         'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
@@ -414,14 +424,14 @@ function fetchDeepSeekV3Evaluation(prompt, responses) {
             const evaluations = [];
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-                const apiResponse = yield http.post('https://api.deepseek.com/v1/chat/completions', {
-                    model: DEEPSEEK_V3_MODEL,
+                const apiResponse = yield http.post('https://api.deepseek.com/chat/completions', {
+                    model: 'deepseek-chat',
                     messages: [
                         { role: 'system', content: 'You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.' },
                         { role: 'user', content: evaluationPrompt }
                     ],
                     temperature: 0.3,
-                    max_tokens: 1000
+                    stream: false
                 }, {
                     headers: {
                         'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
@@ -445,27 +455,18 @@ function fetchGemini2Evaluation(prompt, responses) {
             const evaluations = [];
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-                const apiResponse = yield http.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
-                    contents: [
-                        {
-                            parts: [
-                                { text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
-                            ]
-                        }
-                    ],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 1000
-                    }
+                const apiResponse = yield googleAI.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
                 });
-                const content = apiResponse.data.candidates[0].content.parts[0].text;
+                const content = apiResponse.text || '';
                 const evaluation = parseEvaluation(content);
                 evaluations.push(evaluation);
             }
             return evaluations;
         }
         catch (error) {
-            console.error('Error evaluating with Gemini 2.0 Flash:', error);
+            console.error('Error evaluating with Gemini 2.5 Flash:', error);
             throw error;
         }
     });
@@ -476,20 +477,11 @@ function fetchGemini25ProEvaluation(prompt, responses) {
             const evaluations = [];
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-                const apiResponse = yield http.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
-                    contents: [
-                        {
-                            parts: [
-                                { text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
-                            ]
-                        }
-                    ],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 1000
-                    }
+                const apiResponse = yield googleAI.models.generateContent({
+                    model: 'gemini-2.5-pro',
+                    contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
                 });
-                const content = apiResponse.data.candidates[0].content.parts[0].text;
+                const content = apiResponse.text || '';
                 const evaluation = parseEvaluation(content);
                 evaluations.push(evaluation);
             }
@@ -515,6 +507,7 @@ function fetchGrok4Evaluation(prompt, responses) {
                         { role: 'user', content: evaluationPrompt }
                     ],
                     temperature: 0.3,
+                    max_tokens: 4096,
                 }, {
                     headers: {
                         'Authorization': `Bearer ${apiKey}`,

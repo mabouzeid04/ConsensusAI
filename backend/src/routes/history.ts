@@ -1,15 +1,16 @@
 import express from 'express';
-import { listComparisons, getComparison } from '../services/historyService';
+import { listComparisons, getComparison, attachGuestHistoryToUser } from '../services/historyService';
+import { optionalAuth } from '../middleware/auth';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const clientId = (req.headers['x-client-id'] as string) || '';
     if (!clientId) {
       return res.status(400).json({ error: 'Missing x-client-id header' });
     }
-    const items = await listComparisons(clientId);
+    const items = await listComparisons(clientId, (req.user as any)?.userId);
     res.json(items);
   } catch (err) {
     console.error('Error listing history:', err);
@@ -17,14 +18,14 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const clientId = (req.headers['x-client-id'] as string) || '';
     if (!clientId) {
       return res.status(400).json({ error: 'Missing x-client-id header' });
     }
     const { id } = req.params;
-    const item = await getComparison(id, clientId);
+    const item = await getComparison(id, clientId, (req.user as any)?.userId);
     if (!item) return res.status(404).json({ error: 'Not found' });
     res.json(item);
   } catch (err) {

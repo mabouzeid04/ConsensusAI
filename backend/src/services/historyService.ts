@@ -8,13 +8,15 @@ interface CreateComparisonParams {
   generators?: string[];
   judges?: string[];
   data: any;
+  userId?: string | null;
 }
 
 export async function createComparison(params: CreateComparisonParams) {
-  const { clientId, prompt, generators = [], judges = [], data } = params;
+  const { clientId, prompt, generators = [], judges = [], data, userId = null } = params;
   const created = await prisma.comparison.create({
     data: {
       clientId,
+      userId: userId || undefined,
       prompt,
       generators: generators as unknown as any,
       judges: judges as unknown as any,
@@ -25,9 +27,14 @@ export async function createComparison(params: CreateComparisonParams) {
   return created;
 }
 
-export async function listComparisons(clientId: string) {
+export async function listComparisons(clientId: string, userId?: string | null) {
   const rows = await prisma.comparison.findMany({
-    where: { clientId },
+    where: {
+      OR: [
+        { clientId },
+        ...(userId ? [{ userId }] : []),
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
@@ -57,9 +64,15 @@ export async function listComparisons(clientId: string) {
   });
 }
 
-export async function getComparison(id: string, clientId: string) {
+export async function getComparison(id: string, clientId: string, userId?: string | null) {
   const row = await prisma.comparison.findFirst({
-    where: { id, clientId },
+    where: {
+      id,
+      OR: [
+        { clientId },
+        ...(userId ? [{ userId }] : []),
+      ],
+    },
     select: { id: true, prompt: true, data: true, createdAt: true },
   });
   if (!row) return null;
@@ -69,6 +82,15 @@ export async function getComparison(id: string, clientId: string) {
     createdAt: row.createdAt,
     ...(row.data as any),
   };
+}
+
+export async function attachGuestHistoryToUser(userId: string, clientId: string) {
+  if (!userId || !clientId) return { count: 0 };
+  const result = await prisma.comparison.updateMany({
+    where: { clientId, userId: null },
+    data: { userId },
+  });
+  return { count: result.count };
 }
 
 

@@ -1,5 +1,7 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { GoogleGenAI } from '@google/genai';
+import { OpenAI } from 'openai';
 // Using HTTP API for Anthropic (Claude) per instruction
 
 // Add type declarations for environment variables
@@ -25,6 +27,16 @@ declare global {
 }
 
 dotenv.config();
+
+// Initialize Google GenAI client
+const googleAI = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_API_KEY
+});
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // Types for model responses
 interface ModelResponse {
@@ -81,10 +93,10 @@ const http = axios.create({
 });
 
 // Model IDs with sensible defaults, overridable via env
-const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5-mini';
+const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5'; 
 const OPENAI_GPT5_HIGH_MODEL = process.env.OPENAI_GPT5_HIGH_MODEL || 'gpt-5';
-const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-4.5-sonnet';
-const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'deepseek-v3';
+const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-sonnet-4-5-20250929';
+const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'DeepSeek-V3.2-Exp';
 const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
 
 // -----------------
@@ -92,50 +104,46 @@ const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
 // -----------------
 export async function fetchGpt5LowResponse(prompt: string): Promise<string> {
   try {
-    const response = await http.post<OpenAIResponsesApiResponse>(
-      'https://api.openai.com/v1/responses',
-      {
-        model: 'gpt-5',
-        input: prompt,
-        reasoning: { effort: 'low' },
-        temperature: 0.7,
-        max_output_tokens: 4096,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data.output[0].content[0].text;
+    const response = await openai.responses.create({
+      model: OPENAI_GPT5_LOW_MODEL,
+      input: [
+        { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+      ],
+      max_output_tokens: 4096,
+    } as any);
+    
+    const text = (response as any).output_text || '';
+    return text;
   } catch (error) {
-    console.error('Error fetching GPT-5 Low reasoning response:', error);
+    const err: any = error as any;
+    console.error('Error fetching GPT-5 Low reasoning response:', {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
     throw error;
   }
 }
 
 export async function fetchGpt5HighResponse(prompt: string): Promise<string> {
   try {
-    const response = await http.post<OpenAIResponsesApiResponse>(
-      'https://api.openai.com/v1/responses',
-      {
-        model: 'gpt-5',
-        input: prompt,
-        reasoning: { effort: 'high' },
-        temperature: 0.7,
-        max_output_tokens: 4096,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data.output[0].content[0].text;
+    const response = await openai.responses.create({
+      model: OPENAI_GPT5_HIGH_MODEL,
+      input: [
+        { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+      ],
+      max_output_tokens: 4096,
+    } as any);
+    
+    const text = (response as any).output_text || '';
+    return text;
   } catch (error) {
-    console.error('Error fetching GPT-5 High reasoning response:', error);
+    const err: any = error as any;
+    console.error('Error fetching GPT-5 High reasoning response:', {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
     throw error;
   }
 }
@@ -146,7 +154,7 @@ export async function fetchClaudeSonnetResponse(prompt: string): Promise<string>
     const apiResponse = await http.post<AnthropicResponse>(
       'https://api.anthropic.com/v1/messages',
       {
-        model: 'claude-3.7-sonnet',
+        model: ANTHROPIC_SONNET_45_MODEL,
         max_tokens: 4096,
         messages: [
           { role: 'user', content: prompt }
@@ -228,7 +236,7 @@ export async function fetchDeepSeekV3Response(prompt: string): Promise<string> {
     const response = await http.post<DeepSeekResponse>(
       'https://api.deepseek.com/chat/completions',
       {
-        model: 'deepseek-chat',
+        model: DEEPSEEK_V3_MODEL,
         messages: [
           { role: 'user', content: prompt }
         ],
@@ -251,50 +259,26 @@ export async function fetchDeepSeekV3Response(prompt: string): Promise<string> {
 
 export async function fetchGemini2Response(prompt: string): Promise<string> {
   try {
-    const response = await http.post<GeminiResponse>(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              { text: prompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000
-        }
-      }
-    );
+    const response = await googleAI.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt
+    });
     
-    return response.data.candidates[0].content.parts[0].text;
-  } catch (error) {
-    console.error('Error fetching Gemini 2.0 Flash response:', error);
-    throw error;
+    return response.text || ''; 
+  } catch (error) { 
+    console.error('Error fetching Gemini 2.5 Flash response:', error); 
+    throw error; 
   }
 }
 
 export async function fetchGemini25ProResponse(prompt: string): Promise<string> {
   try {
-    const response = await http.post<GeminiResponse>(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GOOGLE_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              { text: prompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000
-        }
-      }
-    );
+    const response = await googleAI.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: prompt
+    });
     
-    return response.data.candidates[0].content.parts[0].text;
+    return response.text || '';
   } catch (error) {
     console.error('Error fetching Gemini 2.5 Pro response:', error);
     throw error;
@@ -339,28 +323,25 @@ export async function fetchGpt5LowEvaluation(prompt: string, responses: ModelRes
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const responseItem of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, responseItem.label || '', responseItem.response);
-      const apiResponse = await http.post<OpenAIResponsesApiResponse>(
-        'https://api.openai.com/v1/responses',
-        {
-          model: 'gpt-5',
-          input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
-          reasoning: { effort: 'low' },
-          temperature: 0.3,
-          max_output_tokens: 4096,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      const content = apiResponse.data.output[0].content[0].text;
+      const apiResponse = await openai.responses.create({
+        model: OPENAI_GPT5_LOW_MODEL,
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }] }
+        ],
+        max_output_tokens: 4096,
+      } as any);
+      
+      const content = (apiResponse as any).output_text || '';
       evaluations.push(parseEvaluation(content));
     }
     return evaluations;
   } catch (error) {
-    console.error('Error evaluating with GPT-5 Low:', error);
+    const err: any = error as any;
+    console.error('Error evaluating with GPT-5 Low:', {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
     throw error;
   }
 }
@@ -370,28 +351,25 @@ export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelRe
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const responseItem of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, responseItem.label || '', responseItem.response);
-      const apiResponse = await http.post<OpenAIResponsesApiResponse>(
-        'https://api.openai.com/v1/responses',
-        {
-          model: 'gpt-5',
-          input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
-          reasoning: { effort: 'high' },
-          temperature: 0.3,
-          max_output_tokens: 4096,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      const content = apiResponse.data.output[0].content[0].text;
+      const apiResponse = await openai.responses.create({
+        model: OPENAI_GPT5_HIGH_MODEL,
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }] }
+        ],
+        max_output_tokens: 4096,
+      } as any);
+      
+      const content = (apiResponse as any).output_text || '';
       evaluations.push(parseEvaluation(content));
     }
     return evaluations;
   } catch (error) {
-    console.error('Error evaluating with GPT-5 High:', error);
+    const err: any = error as any;
+    console.error('Error evaluating with GPT-5 High:', {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
     throw error;
   }
 }
@@ -404,7 +382,7 @@ export async function fetchClaudeSonnetEvaluation(prompt: string, responses: Mod
       const apiResponse = await http.post<AnthropicResponse>(
         'https://api.anthropic.com/v1/messages',
         {
-          model: 'claude-3.7-sonnet',
+          model: ANTHROPIC_SONNET_45_MODEL,
           max_tokens: 4096,
           messages: [
             { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
@@ -538,31 +516,19 @@ export async function fetchGemini2Evaluation(prompt: string, responses: ModelRes
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await http.post<GeminiResponse>(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
-        {
-          contents: [
-            {
-              parts: [
-                { text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 1000
-          }
-        }
-      );
+      const apiResponse = await googleAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
+      });
       
-      const content = apiResponse.data.candidates[0].content.parts[0].text;
+      const content = apiResponse.text || '';
       const evaluation = parseEvaluation(content);
       evaluations.push(evaluation);
     }
     
     return evaluations;
   } catch (error) {
-    console.error('Error evaluating with Gemini 2.0 Flash:', error);
+    console.error('Error evaluating with Gemini 2.5 Flash:', error);
     throw error;
   }
 }
@@ -574,24 +540,12 @@ export async function fetchGemini25ProEvaluation(prompt: string, responses: Mode
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await http.post<GeminiResponse>(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GOOGLE_API_KEY}`,
-        {
-          contents: [
-            {
-              parts: [
-                { text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 1000
-          }
-        }
-      );
+      const apiResponse = await googleAI.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
+      });
       
-      const content = apiResponse.data.candidates[0].content.parts[0].text;
+      const content = apiResponse.text || '';
       const evaluation = parseEvaluation(content);
       evaluations.push(evaluation);
     }

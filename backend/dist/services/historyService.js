@@ -12,14 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createComparison = createComparison;
 exports.listComparisons = listComparisons;
 exports.getComparison = getComparison;
+exports.attachGuestHistoryToUser = attachGuestHistoryToUser;
 const client_1 = require("../generated/prisma/client");
 const prisma = new client_1.PrismaClient();
 function createComparison(params) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { clientId, prompt, generators = [], judges = [], data } = params;
+        const { clientId, prompt, generators = [], judges = [], data, userId = null } = params;
         const created = yield prisma.comparison.create({
             data: {
                 clientId,
+                userId: userId || undefined,
                 prompt,
                 generators: generators,
                 judges: judges,
@@ -30,10 +32,15 @@ function createComparison(params) {
         return created;
     });
 }
-function listComparisons(clientId) {
+function listComparisons(clientId, userId) {
     return __awaiter(this, void 0, void 0, function* () {
         const rows = yield prisma.comparison.findMany({
-            where: { clientId },
+            where: {
+                OR: [
+                    { clientId },
+                    ...(userId ? [{ userId }] : []),
+                ],
+            },
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true,
@@ -62,14 +69,31 @@ function listComparisons(clientId) {
         });
     });
 }
-function getComparison(id, clientId) {
+function getComparison(id, clientId, userId) {
     return __awaiter(this, void 0, void 0, function* () {
         const row = yield prisma.comparison.findFirst({
-            where: { id, clientId },
+            where: {
+                id,
+                OR: [
+                    { clientId },
+                    ...(userId ? [{ userId }] : []),
+                ],
+            },
             select: { id: true, prompt: true, data: true, createdAt: true },
         });
         if (!row)
             return null;
         return Object.assign({ id: row.id, prompt: row.prompt, createdAt: row.createdAt }, row.data);
+    });
+}
+function attachGuestHistoryToUser(userId, clientId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!userId || !clientId)
+            return { count: 0 };
+        const result = yield prisma.comparison.updateMany({
+            where: { clientId, userId: null },
+            data: { userId },
+        });
+        return { count: result.count };
     });
 }

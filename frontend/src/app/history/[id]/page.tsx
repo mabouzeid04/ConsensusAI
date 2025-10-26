@@ -61,15 +61,22 @@ export default function HistoryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-base-200">
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="bg-white rounded-2xl shadow-xl p-8 backdrop-blur-sm bg-opacity-90 mb-8">
+        <div className="bg-base-100 rounded-2xl shadow-xl p-8 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-800">Original Prompt</h2>
-            <div className="text-sm text-gray-500">{new Date(data.createdAt).toLocaleString()}</div>
+            <h2 className="text-2xl font-bold text-base-content">Original Prompt</h2>
+            <div className="text-sm text-base-content/60">{new Date(data.createdAt).toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+            })}</div>
           </div>
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
-            <p className="text-gray-700 text-lg">{data.prompt}</p>
+          <div className="bg-base-200 rounded-xl p-6 border border-base-300">
+            <p className="text-base-content text-lg">{data.prompt}</p>
           </div>
         </div>
 

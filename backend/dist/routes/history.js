@@ -15,15 +15,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.historyRouter = void 0;
 const express_1 = __importDefault(require("express"));
 const historyService_1 = require("../services/historyService");
+const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 exports.historyRouter = router;
-router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/', auth_1.optionalAuth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const clientId = req.headers['x-client-id'] || '';
         if (!clientId) {
             return res.status(400).json({ error: 'Missing x-client-id header' });
         }
-        const items = yield (0, historyService_1.listComparisons)(clientId);
+        const items = yield (0, historyService_1.listComparisons)(clientId, (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId);
         res.json(items);
     }
     catch (err) {
@@ -31,14 +33,15 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(500).json({ error: 'Failed to fetch history' });
     }
 }));
-router.get('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/:id', auth_1.optionalAuth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const clientId = req.headers['x-client-id'] || '';
         if (!clientId) {
             return res.status(400).json({ error: 'Missing x-client-id header' });
         }
         const { id } = req.params;
-        const item = yield (0, historyService_1.getComparison)(id, clientId);
+        const item = yield (0, historyService_1.getComparison)(id, clientId, (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId);
         if (!item)
             return res.status(404).json({ error: 'Not found' });
         res.json(item);

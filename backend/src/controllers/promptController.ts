@@ -19,6 +19,7 @@ import {
   fetchGrok4Evaluation,
 } from '../services/aiServices';
 import { createComparison } from '../services/historyService';
+import { verifyAuthToken } from '../utils/jwt';
 
 // Type definitions
 interface ModelResponse {
@@ -69,7 +70,7 @@ const MODEL_REGISTRY = {
     evaluate: fetchDeepSeekV3Evaluation,
   },
   gemini_20_flash: {
-    label: 'Gemini 2.0 Flash',
+    label: 'Gemini 2.5 Flash',
     respond: fetchGemini2Response,
     evaluate: fetchGemini2Evaluation,
   },
@@ -142,9 +143,9 @@ export const evaluateResponses = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Prompt, shuffled responses, and original mapping are required' });
     }
 
-    // Judges default to responders (self-judging allowed); filter to those present in mapping
+    // Judges default to responders (self-judging allowed)
     const respondersPresent = (originalMapping as ModelResponse[]).map(m => m.id).filter(Boolean) as ModelId[];
-    const chosenJudges: ModelId[] = (judges && judges.length ? judges : respondersPresent).filter(id => respondersPresent.includes(id));
+    const chosenJudges: ModelId[] = (judges && judges.length ? judges : respondersPresent);
 
     const evaluationPromises = chosenJudges.map(id => evaluateResponsesWithModelId(id, prompt, shuffledResponses));
     const allEvaluationsResults = await Promise.allSettled(evaluationPromises);
@@ -183,11 +184,15 @@ export const evaluateResponses = async (req: Request, res: Response) => {
 
     // Persist comparison
     const clientId = (req.headers['x-client-id'] as string) || '';
+    // Try to read user from auth cookie if present
+    const token = (req as any).cookies?.auth || '';
+    const payload = token ? verifyAuthToken(token) : null;
     let comparisonId: string | undefined = undefined;
     if (clientId) {
       try {
         const created = await createComparison({
           clientId,
+          userId: payload?.userId || null,
           prompt,
           generators: (originalMapping as ModelResponse[]).map(m => m.id as string).filter(Boolean),
           judges: (chosenJudges as string[]),
