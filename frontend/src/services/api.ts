@@ -10,13 +10,13 @@ declare global {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-export async function submitPrompt(prompt: string) {
+export async function submitPrompt(payload: { prompt: string; generators: string[] }) {
   const response = await fetch(`${API_BASE_URL}/prompt/submit`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -26,17 +26,13 @@ export async function submitPrompt(prompt: string) {
   return response.json();
 }
 
-export async function evaluateResponses(prompt: string, shuffledResponses: any[], originalMapping: any[]) {
+export async function evaluateResponses(params: { prompt: string; shuffledResponses: any[]; originalMapping: any[]; judges: string[] }) {
   const response = await fetch(`${API_BASE_URL}/prompt/evaluate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ 
-      prompt,
-      shuffledResponses,
-      originalMapping
-    }),
+    body: JSON.stringify(params),
   });
 
   if (!response.ok) {

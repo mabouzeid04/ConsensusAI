@@ -15,6 +15,7 @@ import {
 
 // Type definitions
 interface ModelResponse {
+  id?: string; // model id for filtering
   model: string;
   response: string;
   label?: string;
@@ -34,55 +35,60 @@ interface ResponseWithEvaluations {
 }
 
 // Controller functions
+const MODEL_REGISTRY = {
+  gpt4o_t07: {
+    label: 'OpenAI GPT-4o (T0.7)',
+    respond: fetchGpt4O1Response,
+    evaluate: fetchGpt4O1Evaluation,
+  },
+  gpt4o_t10: {
+    label: 'OpenAI GPT-4o (T1.0)',
+    respond: fetchGpt4O3Response,
+    evaluate: fetchGpt4O3Evaluation,
+  },
+  claude_37_sonnet: {
+    label: 'Claude 3.7 Sonnet',
+    respond: fetchClaudeSonnetResponse,
+    evaluate: fetchClaudeSonnetEvaluation,
+  },
+  deepseek_r1: {
+    label: 'DeepSeek R1',
+    respond: fetchDeepSeekR1Response,
+    evaluate: fetchDeepSeekR1Evaluation,
+  },
+  gemini_20_flash: {
+    label: 'Gemini 2.0 Flash',
+    respond: fetchGemini2Response,
+    evaluate: fetchGemini2Evaluation,
+  },
+} as const;
+type ModelId = keyof typeof MODEL_REGISTRY;
+
 export const getModelResponses = async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, generators } = req.body as { prompt: string; generators?: ModelId[] };
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // Fetch responses from all models concurrently
-    const [gpt4O1, gpt4O3, claudeSonnet, deepSeekR1, gemini2] = await Promise.allSettled([
-      fetchGpt4O1Response(prompt),
-      fetchGpt4O3Response(prompt),
-      fetchClaudeSonnetResponse(prompt),
-      fetchDeepSeekR1Response(prompt),
-      fetchGemini2Response(prompt)
-    ]);
+    const chosen: ModelId[] = (generators?.length ? generators : (Object.keys(MODEL_REGISTRY) as ModelId[]));
 
-    // Create array of model responses
+    const settled = await Promise.allSettled(
+      chosen.map(async (id) => {
+        const response = await MODEL_REGISTRY[id].respond(prompt);
+        return { id, model: MODEL_REGISTRY[id].label, response } as ModelResponse;
+      })
+    );
+
     const modelResponses: ModelResponse[] = [];
-    
-    if (gpt4O1.status === 'fulfilled') {
-      modelResponses.push({ model: 'OpenAI GPT-4o (T0.7)', response: gpt4O1.value });
-    } else {
-      console.error('Error fetching OpenAI o1 response:', gpt4O1.reason);
-    }
-    
-    if (gpt4O3.status === 'fulfilled') {
-      modelResponses.push({ model: 'OpenAI GPT-4o (T1.0)', response: gpt4O3.value });
-    } else {
-      console.error('Error fetching OpenAI o3-mini response:', gpt4O3.reason);
-    }
-    
-    if (claudeSonnet.status === 'fulfilled') {
-      modelResponses.push({ model: 'Claude 3.7 Sonnet', response: claudeSonnet.value });
-    } else {
-      console.error('Error fetching Claude Sonnet response:', claudeSonnet.reason);
-    }
-    
-    if (deepSeekR1.status === 'fulfilled') {
-      modelResponses.push({ model: 'DeepSeek R1', response: deepSeekR1.value });
-    } else {
-      console.error('Error fetching DeepSeek R1 response:', deepSeekR1.reason);
-    }
-    
-    if (gemini2.status === 'fulfilled') {
-      modelResponses.push({ model: 'Gemini 2.0 Flash', response: gemini2.value });
-    } else {
-      console.error('Error fetching Gemini 2.0 Flash response:', gemini2.reason);
-    }
+    settled.forEach((r, idx) => {
+      if (r.status === 'fulfilled') {
+        modelResponses.push(r.value);
+      } else {
+        console.error(`Error fetching response for ${MODEL_REGISTRY[chosen[idx]].label}:`, r.reason);
+      }
+    });
 
     // If no model responses were successfully fetched, return an error
     if (modelResponses.length === 0) {
@@ -108,36 +114,26 @@ export const getModelResponses = async (req: Request, res: Response) => {
 
 export const evaluateResponses = async (req: Request, res: Response) => {
   try {
-    const { prompt, shuffledResponses, originalMapping } = req.body;
+    const { prompt, shuffledResponses, originalMapping, judges } = req.body as { prompt: string; shuffledResponses: ModelResponse[]; originalMapping: ModelResponse[]; judges?: ModelId[] };
     
     if (!prompt || !shuffledResponses || !originalMapping) {
       return res.status(400).json({ error: 'Prompt, shuffled responses, and original mapping are required' });
     }
 
-    const evaluationPromises = [];
-    const models = ['OpenAI GPT-4o (T0.7)', 'OpenAI GPT-4o (T1.0)', 'Claude 3.7 Sonnet', 'DeepSeek R1', 'Gemini 2.0 Flash'];
-    
-    // Use only available models for evaluation
-    const availableModels = models.filter(model => 
-      originalMapping.some((item: ModelResponse) => item.model === model)
-    );
+    // Judges default to responders (self-judging allowed); filter to those present in mapping
+    const respondersPresent = (originalMapping as ModelResponse[]).map(m => m.id).filter(Boolean) as ModelId[];
+    const chosenJudges: ModelId[] = (judges && judges.length ? judges : respondersPresent).filter(id => respondersPresent.includes(id));
 
-    // Get each model to evaluate all responses
-    for (const model of availableModels) {
-      const evaluationPromise = evaluateResponsesWithModel(model, prompt, shuffledResponses);
-      evaluationPromises.push(evaluationPromise);
-    }
-
+    const evaluationPromises = chosenJudges.map(id => evaluateResponsesWithModelId(id, prompt, shuffledResponses));
     const allEvaluationsResults = await Promise.allSettled(evaluationPromises);
 
-    // Keep alignment with availableModels; for rejected evaluators, synthesize default evaluations
     const evaluationsByModel: Array<Array<{ score: number, explanation: string }>> = allEvaluationsResults.map((result, i) => {
       if (result.status === 'fulfilled') {
         return result.value;
       }
       return (shuffledResponses as ModelResponse[]).map(() => ({
         score: 0,
-        explanation: `Evaluation with ${availableModels[i]} failed`
+        explanation: `Evaluation with ${MODEL_REGISTRY[chosenJudges[i]].label} failed`
       }));
     });
 
@@ -150,7 +146,7 @@ export const evaluateResponses = async (req: Request, res: Response) => {
 
       // Collect all evaluations for this response
       const evaluations = evaluationsByModel.map((modelEval, evalIndex) => ({
-        model: availableModels[evalIndex] || 'Unknown',
+        model: MODEL_REGISTRY[chosenJudges[evalIndex]].label || 'Unknown',
         score: modelEval?.[index]?.score ?? 0,
         explanation: modelEval?.[index]?.explanation ?? 'Evaluation failed'
       }));
@@ -189,33 +185,19 @@ function shuffleAndLabelResponses(responses: ModelResponse[]): ModelResponse[] {
   }));
 }
 
-async function evaluateResponsesWithModel(
-  model: string, 
-  prompt: string, 
+async function evaluateResponsesWithModelId(
+  id: ModelId,
+  prompt: string,
   responses: ModelResponse[]
 ): Promise<Array<{ score: number, explanation: string }>> {
-  // Create a function that maps model names to their evaluation function
-  const evaluationFunctions: Record<string, Function> = {
-    'OpenAI GPT-4o (T0.7)': fetchGpt4O1Evaluation,
-    'OpenAI GPT-4o (T1.0)': fetchGpt4O3Evaluation,
-    'Claude 3.7 Sonnet': fetchClaudeSonnetEvaluation,
-    'DeepSeek R1': fetchDeepSeekR1Evaluation,
-    'Gemini 2.0 Flash': fetchGemini2Evaluation
-  };
-
-  const evaluationFunction = evaluationFunctions[model];
-  if (!evaluationFunction) {
-    throw new Error(`No evaluation function for model: ${model}`);
-  }
-
+  const evaluationFunction = MODEL_REGISTRY[id].evaluate;
   try {
     return await evaluationFunction(prompt, responses);
   } catch (error) {
-    console.error(`Error during evaluation with ${model}:`, error);
-    // Return a default evaluation for each response
+    console.error(`Error during evaluation with ${MODEL_REGISTRY[id].label}:`, error);
     return responses.map(() => ({
       score: 0,
-      explanation: `Evaluation with ${model} failed`
+      explanation: `Evaluation with ${MODEL_REGISTRY[id].label} failed`
     }));
   }
 }

@@ -34,21 +34,22 @@ export default function Home() {
   const [shuffledResponses, setShuffledResponses] = useState<ModelResponse[]>([]);
   const [originalMapping, setOriginalMapping] = useState<ModelResponse[]>([]);
 
-  const handlePromptSubmit = async (prompt: string) => {
+  const handlePromptSubmit = async ({ prompt, generators, judges }: { prompt: string; generators: string[]; judges: string[] }) => {
     setIsLoading(true);
     setPromptText(prompt);
     setStep('evaluating');
     
     try {
-      const data = await submitPrompt(prompt);
+      const data = await submitPrompt({ prompt, generators });
       setShuffledResponses(data.shuffledResponses);
       setOriginalMapping(data.originalMapping);
       
-      const evaluationData = await evaluateResponses(
-        prompt, 
-        data.shuffledResponses, 
-        data.originalMapping
-      );
+      const evaluationData = await evaluateResponses({
+        prompt,
+        shuffledResponses: data.shuffledResponses,
+        originalMapping: data.originalMapping,
+        judges,
+      });
       
       setResults(evaluationData);
       setStep('results');
@@ -106,7 +107,14 @@ export default function Home() {
         {step === 'results' && results && (
           <div className="space-y-8">
             <div className="bg-white rounded-2xl shadow-xl p-8 backdrop-blur-sm bg-opacity-90">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Original Prompt</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Original Prompt</h2>
+                <div className="tooltip" data-tip="Model names are anonymized before judging.">
+                  <span className="inline-flex items-center text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-full px-2 py-1">
+                    Blind judging
+                  </span>
+                </div>
+              </div>
               <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
                 <p className="text-gray-700 text-lg">{promptText}</p>
               </div>
