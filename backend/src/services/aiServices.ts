@@ -1,10 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { Anthropic } from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
+// Using HTTP API for Anthropic (Claude) per instruction
 
 // Add type declarations for environment variables
 declare global {
@@ -103,6 +99,7 @@ export async function fetchGpt5LowResponse(prompt: string): Promise<string> {
         input: prompt,
         reasoning: { effort: 'low' },
         temperature: 0.7,
+        max_output_tokens: 4096,
       },
       {
         headers: {
@@ -127,6 +124,7 @@ export async function fetchGpt5HighResponse(prompt: string): Promise<string> {
         input: prompt,
         reasoning: { effort: 'high' },
         temperature: 0.7,
+        max_output_tokens: 4096,
       },
       {
         headers: {
@@ -145,19 +143,25 @@ export async function fetchGpt5HighResponse(prompt: string): Promise<string> {
 
 export async function fetchClaudeSonnetResponse(prompt: string): Promise<string> {
   try {
-    const apiResponse = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 1000,
-      messages: [
-        { role: 'user', content: prompt }
-      ]
-    });
-
-    let content = '';
-    if (apiResponse.content[0].type === 'text') {
-      content = apiResponse.content[0].text;
-    }
-    return content;
+    const apiResponse = await http.post<AnthropicResponse>(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-3.7-sonnet',
+        max_tokens: 4096,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        }
+      }
+    );
+    return apiResponse.data.content[0].text;
   } catch (error) {
     console.error('Error fetching Claude 3.7 Sonnet response:', error);
     throw error;
@@ -166,18 +170,25 @@ export async function fetchClaudeSonnetResponse(prompt: string): Promise<string>
 
 export async function fetchClaude45SonnetResponse(prompt: string): Promise<string> {
   try {
-    const apiResponse = await anthropic.messages.create({
-      model: ANTHROPIC_SONNET_45_MODEL,
-      max_tokens: 1000,
-      messages: [
-        { role: 'user', content: prompt }
-      ]
-    });
-    let content = '';
-    if (apiResponse.content[0].type === 'text') {
-      content = apiResponse.content[0].text;
-    }
-    return content;
+    const apiResponse = await http.post<AnthropicResponse>(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: ANTHROPIC_SONNET_45_MODEL,
+        max_tokens: 4096,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        }
+      }
+    );
+    return apiResponse.data.content[0].text;
   } catch (error) {
     console.error('Error fetching Claude 4.5 Sonnet response:', error);
     throw error;
@@ -186,16 +197,15 @@ export async function fetchClaude45SonnetResponse(prompt: string): Promise<strin
 
 export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
   try {
-    const response = await http.post<DeepSeekResponse>(
-      'https://api.deepseek.com/v1/chat/completions',
+    const response = await http.post<any>(
+      'https://api.deepseek.com/chat/completions',
       {
         model: 'deepseek-reasoner',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 32768,
+        stream: false
       },
       {
         headers: {
@@ -204,8 +214,9 @@ export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
         }
       }
     );
-    
-    return response.data.choices[0].message.content;
+    const reasoning = response.data.choices[0].message.reasoning_content;
+    const answer = response.data.choices[0].message.content;
+    return answer;
   } catch (error) {
     console.error('Error fetching DeepSeek R1 response:', error);
     throw error;
@@ -215,15 +226,14 @@ export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
 export async function fetchDeepSeekV3Response(prompt: string): Promise<string> {
   try {
     const response = await http.post<DeepSeekResponse>(
-      'https://api.deepseek.com/v1/chat/completions',
+      'https://api.deepseek.com/chat/completions',
       {
-        model: DEEPSEEK_V3_MODEL,
+        model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 1000
+        stream: false
       },
       {
         headers: {
@@ -306,6 +316,7 @@ export async function fetchGrok4Response(prompt: string): Promise<string> {
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
+        max_tokens: 4096,
       },
       {
         headers: {
@@ -335,6 +346,7 @@ export async function fetchGpt5LowEvaluation(prompt: string, responses: ModelRes
           input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
           reasoning: { effort: 'low' },
           temperature: 0.3,
+          max_output_tokens: 4096,
         },
         {
           headers: {
@@ -365,6 +377,7 @@ export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelRe
           input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
           reasoning: { effort: 'high' },
           temperature: 0.3,
+          max_output_tokens: 4096,
         },
         {
           headers: {
@@ -385,28 +398,30 @@ export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelRe
 
 export async function fetchClaudeSonnetEvaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
   try {
-    const evaluations = [];
-    
+    const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-      
-      const apiResponse = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
-        max_tokens: 1000,
-        messages: [
-          { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
-        ]
-      });
-      
-      let content = "";
-      if (apiResponse.content[0].type === 'text') {
-        content = apiResponse.content[0].text;
-      }
-      
+      const apiResponse = await http.post<AnthropicResponse>(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: 'claude-3.7-sonnet',
+          max_tokens: 4096,
+          messages: [
+            { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
+          ]
+        },
+        {
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+          }
+        }
+      );
+      const content = apiResponse.data.content[0].text;
       const evaluation = parseEvaluation(content);
       evaluations.push(evaluation);
     }
-    
     return evaluations;
   } catch (error) {
     console.error('Error evaluating with Claude 3.7 Sonnet:', error);
@@ -419,17 +434,24 @@ export async function fetchClaude45SonnetEvaluation(prompt: string, responses: M
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-      const apiResponse = await anthropic.messages.create({
-        model: ANTHROPIC_SONNET_45_MODEL,
-        max_tokens: 1000,
-        messages: [
-          { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
-        ]
-      });
-      let content = '';
-      if (apiResponse.content[0].type === 'text') {
-        content = apiResponse.content[0].text;
-      }
+      const apiResponse = await http.post<AnthropicResponse>(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: ANTHROPIC_SONNET_45_MODEL,
+          max_tokens: 4096,
+          messages: [
+            { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
+          ]
+        },
+        {
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+          }
+        }
+      );
+      const content = apiResponse.data.content[0].text;
       evaluations.push(parseEvaluation(content));
     }
     return evaluations;
@@ -446,16 +468,15 @@ export async function fetchDeepSeekR1Evaluation(prompt: string, responses: Model
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await http.post<DeepSeekResponse>(
-        'https://api.deepseek.com/v1/chat/completions',
+      const apiResponse = await http.post<any>(
+        'https://api.deepseek.com/chat/completions',
         {
           model: 'deepseek-reasoner',
           messages: [
-            { role: 'system', content: 'You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.' },
             { role: 'user', content: evaluationPrompt }
           ],
-          temperature: 0.3,
-          max_tokens: 1000
+          max_tokens: 32768,
+          stream: false
         },
         {
           headers: {
@@ -483,15 +504,15 @@ export async function fetchDeepSeekV3Evaluation(prompt: string, responses: Model
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       const apiResponse = await http.post<DeepSeekResponse>(
-        'https://api.deepseek.com/v1/chat/completions',
+        'https://api.deepseek.com/chat/completions',
         {
-          model: DEEPSEEK_V3_MODEL,
+          model: 'deepseek-chat',
           messages: [
             { role: 'system', content: 'You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.' },
             { role: 'user', content: evaluationPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 1000
+          stream: false
         },
         {
           headers: {
@@ -597,6 +618,7 @@ export async function fetchGrok4Evaluation(prompt: string, responses: ModelRespo
             { role: 'user', content: evaluationPrompt }
           ],
           temperature: 0.3,
+          max_tokens: 4096,
         },
         {
           headers: {
