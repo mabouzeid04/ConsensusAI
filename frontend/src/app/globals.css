@@ -4,25 +4,34 @@
 
 @layer base {
   body {
-    @apply antialiased text-base-content bg-base-100;
+    @apply antialiased;
+    color: oklch(var(--bc));
+    background-color: oklch(var(--b1));
   }
 }
 
 @layer components {
   .prose {
-    @apply max-w-none text-base-content;
+    @apply max-w-none;
+    color: oklch(var(--bc));
   }
   
   .prose pre {
-    @apply bg-neutral text-neutral-content rounded-xl shadow-lg;
+    @apply rounded-xl shadow-lg;
+    background-color: oklch(var(--n));
+    color: oklch(var(--nc));
   }
   
   .prose code {
-    @apply text-primary bg-primary/10 px-1.5 py-0.5 rounded;
+    @apply px-1.5 py-0.5 rounded;
+    color: oklch(var(--p));
+    background-color: oklch(var(--p) / 0.1);
   }
   
   .prose pre code {
-    @apply text-neutral-content bg-transparent p-0;
+    @apply p-0;
+    color: oklch(var(--nc));
+    background-color: transparent;
   }
 }
 
