@@ -3,9 +3,10 @@ import React, { useMemo, useState } from 'react';
 interface PromptFormProps {
   onSubmit: (payload: { prompt: string; generators: string[]; judges: string[] }) => void;
   isLoading: boolean;
+  errorMessage?: string | null;
 }
 
-export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
+export default function PromptForm({ onSubmit, isLoading, errorMessage }: PromptFormProps) {
   const [prompt, setPrompt] = useState('');
   const MODELS = [
     { id: 'gpt5_low', label: 'GPT-5 Low' },
@@ -53,6 +54,11 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {!!errorMessage && (
+          <div className="alert alert-warning">
+            <span>{errorMessage}</span>
+          </div>
+        )}
         <div>
           <label htmlFor="prompt" className="block text-lg font-medium text-base-content mb-2">
             Enter your prompt

@@ -2,6 +2,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { OpenAI } from 'openai';
+import { Provider } from './billing/tokenize';
 // Using HTTP API for Anthropic (Claude) per instruction
 
 // Add type declarations for environment variables
@@ -98,6 +99,21 @@ const OPENAI_GPT5_HIGH_MODEL = process.env.OPENAI_GPT5_HIGH_MODEL || 'gpt-5';
 const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-sonnet-4-5-20250929';
 const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'DeepSeek-V3.2-Exp';
 const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
+
+export type ProviderUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheCreateTokens?: number;
+  cacheReadTokens?: number;
+};
+
+export type ProviderResult = {
+  provider: Provider;
+  model: string;
+  text: string;
+  usage: ProviderUsage;
+  maxOutputTokens?: number;
+};
 
 // -----------------
 // OpenAI (GPT-5)
@@ -314,6 +330,226 @@ export async function fetchGrok4Response(prompt: string): Promise<string> {
     console.error('Error fetching Grok 4 response:', error);
     throw error;
   }
+}
+
+// Usage-aware wrappers
+export async function fetchGpt5LowResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const resp = await openai.responses.create({
+    model: OPENAI_GPT5_LOW_MODEL,
+    input: [
+      { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+    ],
+    max_output_tokens: 4096,
+  } as any);
+  const text = (resp as any).output_text || '';
+  const usage = (resp as any).usage || {};
+  return {
+    provider: 'openai',
+    model: OPENAI_GPT5_LOW_MODEL,
+    text,
+    usage: {
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheCreateTokens: usage.cache_creation_input_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens,
+    },
+    maxOutputTokens: 4096,
+  };
+}
+
+export async function fetchGpt5HighResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const resp = await openai.responses.create({
+    model: OPENAI_GPT5_HIGH_MODEL,
+    input: [
+      { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+    ],
+    max_output_tokens: 4096,
+  } as any);
+  const text = (resp as any).output_text || '';
+  const usage = (resp as any).usage || {};
+  return {
+    provider: 'openai',
+    model: OPENAI_GPT5_HIGH_MODEL,
+    text,
+    usage: {
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheCreateTokens: usage.cache_creation_input_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens,
+    },
+    maxOutputTokens: 4096,
+  };
+}
+
+export async function fetchClaude45SonnetResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const apiResponse = await http.post<any>(
+    'https://api.anthropic.com/v1/messages',
+    {
+      model: ANTHROPIC_SONNET_45_MODEL,
+      max_tokens: 4096,
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7
+    },
+    {
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      }
+    }
+  );
+  const text = apiResponse.data?.content?.[0]?.text || '';
+  const usage = apiResponse.data?.usage || {};
+  return {
+    provider: 'anthropic',
+    model: ANTHROPIC_SONNET_45_MODEL,
+    text,
+    usage: {
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheCreateTokens: usage.cache_creation_input_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens,
+    },
+    maxOutputTokens: 4096,
+  };
+}
+
+export async function fetchDeepSeekR1ResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const response = await http.post<any>(
+    'https://api.deepseek.com/chat/completions',
+    {
+      model: 'deepseek-reasoner',
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 32768,
+      stream: false
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  const text = response.data?.choices?.[0]?.message?.content || '';
+  const usage = response.data?.usage || {};
+  return {
+    provider: 'deepseek',
+    model: 'deepseek-reasoner',
+    text,
+    usage: {
+      inputTokens: usage.prompt_tokens,
+      outputTokens: usage.completion_tokens,
+    },
+    maxOutputTokens: 32768,
+  };
+}
+
+export async function fetchDeepSeekV3ResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const response = await http.post<any>(
+    'https://api.deepseek.com/chat/completions',
+    {
+      model: DEEPSEEK_V3_MODEL,
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      stream: false
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  const text = response.data?.choices?.[0]?.message?.content || '';
+  const usage = response.data?.usage || {};
+  return {
+    provider: 'deepseek',
+    model: DEEPSEEK_V3_MODEL,
+    text,
+    usage: {
+      inputTokens: usage.prompt_tokens,
+      outputTokens: usage.completion_tokens,
+    },
+    maxOutputTokens: 4096,
+  };
+}
+
+export async function fetchGemini2ResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const response: any = await googleAI.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt
+  });
+  const text = response.text || '';
+  const usage = response.usageMetadata || {};
+  return {
+    provider: 'google',
+    model: 'gemini-2.5-flash',
+    text,
+    usage: {
+      inputTokens: usage.promptTokenCount,
+      outputTokens: usage.candidatesTokenCount,
+    },
+    maxOutputTokens: 8192,
+  };
+}
+
+export async function fetchGemini25ProResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const response: any = await googleAI.models.generateContent({
+    model: 'gemini-2.5-pro',
+    contents: prompt
+  });
+  const text = response.text || '';
+  const usage = response.usageMetadata || {};
+  return {
+    provider: 'google',
+    model: 'gemini-2.5-pro',
+    text,
+    usage: {
+      inputTokens: usage.promptTokenCount,
+      outputTokens: usage.candidatesTokenCount,
+    },
+    maxOutputTokens: 8192,
+  };
+}
+
+export async function fetchGrok4ResponseWithUsage(prompt: string): Promise<ProviderResult> {
+  const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+  const response = await http.post<any>(
+    'https://api.x.ai/v1/chat/completions',
+    {
+      model: GROK_4_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  const text = response.data?.choices?.[0]?.message?.content || '';
+  const usage = response.data?.usage || {};
+  return {
+    provider: 'xai',
+    model: GROK_4_MODEL,
+    text,
+    usage: {
+      inputTokens: usage.prompt_tokens,
+      outputTokens: usage.completion_tokens,
+    },
+    maxOutputTokens: 4096,
+  };
 }
 
 // Evaluation functions

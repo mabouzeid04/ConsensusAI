@@ -36,11 +36,13 @@ export default function Home() {
   const [shuffledResponses, setShuffledResponses] = useState<ModelResponse[]>([]);
   const [originalMapping, setOriginalMapping] = useState<ModelResponse[]>([]);
   const [comparisonId, setComparisonId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handlePromptSubmit = async ({ prompt, generators, judges }: { prompt: string; generators: string[]; judges: string[] }) => {
     setIsLoading(true);
     setPromptText(prompt);
     setStep('evaluating');
+    setErrorMessage(null);
     
     try {
       const data = await submitPrompt({ prompt, generators });
@@ -61,9 +63,14 @@ export default function Home() {
         setComparisonId(null);
       }
       setStep('results');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      alert('An error occurred. Please try again.');
+      const msg = error?.message || '';
+      if (msg.toLowerCase().includes('insufficient funds')) {
+        setErrorMessage('Insufficient funds in your wallet. Please top up on your Account page.');
+      } else {
+        setErrorMessage('An error occurred. Please try again.');
+      }
       setStep('input');
     } finally {
       setIsLoading(false);
@@ -94,7 +101,7 @@ export default function Home() {
               <div className="flex justify-end mb-2">
                 <Link href="/history" className="btn btn-ghost normal-case">View History</Link>
               </div>
-              <PromptForm onSubmit={handlePromptSubmit} isLoading={isLoading} />
+              <PromptForm onSubmit={handlePromptSubmit} isLoading={isLoading} errorMessage={errorMessage} />
             </div>
           </div>
         )}

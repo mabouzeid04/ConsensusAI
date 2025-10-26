@@ -33,7 +33,9 @@ export async function submitPrompt(payload: { prompt: string; generators: string
   });
 
   if (!response.ok) {
-    throw new Error('Failed to submit prompt');
+    const data = await response.json().catch(() => ({}));
+    const msg = (data && data.error) || 'Failed to submit prompt';
+    throw new Error(msg);
   }
 
   return response.json();
@@ -135,5 +137,34 @@ export async function logout() {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Logout failed');
+  return res.json();
+}
+
+export async function getWallet() {
+  const res = await fetch(`${API_BASE_URL}/billing/wallet`, {
+    credentials: 'include',
+    headers: { 'x-client-id': getClientId() },
+  });
+  if (!res.ok) throw new Error('Failed to fetch wallet');
+  return res.json();
+}
+
+export async function creditWallet(amountCents: number) {
+  const res = await fetch(`${API_BASE_URL}/billing/wallet/credit`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amountCents }),
+  });
+  if (!res.ok) throw new Error('Failed to credit wallet');
+  return res.json();
+}
+
+export async function getUsage(limit = 50, cursor?: string) {
+  const url = new URL(`${API_BASE_URL}/billing/usage`);
+  url.searchParams.set('limit', String(limit));
+  if (cursor) url.searchParams.set('cursor', cursor);
+  const res = await fetch(url.toString(), { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch usage');
   return res.json();
 }

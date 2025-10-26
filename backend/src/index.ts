@@ -7,6 +7,7 @@ import passport from 'passport';
 import { promptRouter } from './routes/prompt';
 import { historyRouter } from './routes/history';
 import { authRouter, configureGoogleStrategy } from './routes/auth';
+import { billingRouter } from './routes/billing';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ configureGoogleStrategy();
 app.use('/api/prompt', promptRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/billing', billingRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
