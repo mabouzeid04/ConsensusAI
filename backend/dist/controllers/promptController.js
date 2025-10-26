@@ -103,9 +103,9 @@ const evaluateResponses = (req, res) => __awaiter(void 0, void 0, void 0, functi
         if (!prompt || !shuffledResponses || !originalMapping) {
             return res.status(400).json({ error: 'Prompt, shuffled responses, and original mapping are required' });
         }
-        // Judges default to responders (self-judging allowed); filter to those present in mapping
+        // Judges default to responders (self-judging allowed)
         const respondersPresent = originalMapping.map(m => m.id).filter(Boolean);
-        const chosenJudges = (judges && judges.length ? judges : respondersPresent).filter(id => respondersPresent.includes(id));
+        const chosenJudges = (judges && judges.length ? judges : respondersPresent);
         const evaluationPromises = chosenJudges.map(id => evaluateResponsesWithModelId(id, prompt, shuffledResponses));
         const allEvaluationsResults = yield Promise.allSettled(evaluationPromises);
         const evaluationsByModel = allEvaluationsResults.map((result, i) => {

@@ -143,9 +143,9 @@ export const evaluateResponses = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Prompt, shuffled responses, and original mapping are required' });
     }
 
-    // Judges default to responders (self-judging allowed); filter to those present in mapping
+    // Judges default to responders (self-judging allowed)
     const respondersPresent = (originalMapping as ModelResponse[]).map(m => m.id).filter(Boolean) as ModelId[];
-    const chosenJudges: ModelId[] = (judges && judges.length ? judges : respondersPresent).filter(id => respondersPresent.includes(id));
+    const chosenJudges: ModelId[] = (judges && judges.length ? judges : respondersPresent);
 
     const evaluationPromises = chosenJudges.map(id => evaluateResponsesWithModelId(id, prompt, shuffledResponses));
     const allEvaluationsResults = await Promise.allSettled(evaluationPromises);
