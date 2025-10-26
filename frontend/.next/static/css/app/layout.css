@@ -2463,6 +2463,10 @@ body[dir="rtl"] .checkbox:checked,
   --tw-text-opacity: 1;
   color: rgb(37 99 235 / var(--tw-text-opacity));
 }
+.text-error {
+  --tw-text-opacity: 1;
+  color: hsl(var(--er) / var(--tw-text-opacity));
+}
 .placeholder-base-content\/50::-moz-placeholder {
   color: hsl(var(--bc) / 0.5);
 }

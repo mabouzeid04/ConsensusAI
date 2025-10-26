@@ -21,25 +21,25 @@ export default function AccountPage() {
     })();
   }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-base-content">Loading...</div>;
+  if (error) return <div className="min-h-screen flex items-center justify-center text-error">{error}</div>;
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow p-8">Not signed in.</div>
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
+        <div className="bg-base-100 rounded-2xl shadow p-8 text-base-content">Not signed in.</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-base-200">
       <main className="container mx-auto px-4 py-12 max-w-2xl">
-        <div className="bg-white rounded-2xl shadow p-8">
+        <div className="bg-base-100 rounded-2xl shadow p-8 text-base-content border border-base-300">
           <h1 className="text-2xl font-bold mb-6">Account</h1>
           <div className="space-y-2">
-            <div><span className="text-gray-500">Email:</span> {user.email}</div>
-            {user.name && <div><span className="text-gray-500">Name:</span> {user.name}</div>}
+            <div><span className="text-base-content/60">Email:</span> {user.email}</div>
+            {user.name && <div><span className="text-base-content/60">Name:</span> {user.name}</div>}
           </div>
         </div>
       </main>
