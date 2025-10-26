@@ -40,7 +40,7 @@ const http = axios_1.default.create({
 // Model IDs with sensible defaults, overridable via env
 const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5-mini';
 const OPENAI_GPT5_HIGH_MODEL = process.env.OPENAI_GPT5_HIGH_MODEL || 'gpt-5';
-const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-4.5-sonnet';
+const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-sonnet-4-5-20250929';
 const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'deepseek-v3';
 const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
 // -----------------
@@ -96,7 +96,7 @@ function fetchClaudeSonnetResponse(prompt) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const apiResponse = yield http.post('https://api.anthropic.com/v1/messages', {
-                model: 'claude-3.7-sonnet',
+                model: ANTHROPIC_SONNET_45_MODEL,
                 max_tokens: 4096,
                 messages: [
                     { role: 'user', content: prompt }
@@ -335,7 +335,7 @@ function fetchClaudeSonnetEvaluation(prompt, responses) {
             for (const response of responses) {
                 const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
                 const apiResponse = yield http.post('https://api.anthropic.com/v1/messages', {
-                    model: 'claude-3.7-sonnet',
+                    model: ANTHROPIC_SONNET_45_MODEL,
                     max_tokens: 4096,
                     messages: [
                         { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
