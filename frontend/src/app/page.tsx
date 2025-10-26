@@ -141,11 +141,6 @@ export default function Home() {
               >
                 Start New Comparison
               </button>
-              {comparisonId && (
-                <Link href={`/history/${comparisonId}`} className="btn btn-lg normal-case bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200">
-                  View in History
-                </Link>
-              )}
             </div>
           </div>
         )}
