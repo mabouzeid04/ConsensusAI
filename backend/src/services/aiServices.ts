@@ -63,7 +63,7 @@ interface DeepSeekResponse {
 
 // Shared axios instance with timeouts
 const http = axios.create({
-  timeout: 30000,
+  timeout: 60000,
 });
 
 export async function fetchGpt4O1Response(prompt: string): Promise<string> {
