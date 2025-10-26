@@ -81,8 +81,8 @@ const http = axios.create({
 });
 
 // Model IDs with sensible defaults, overridable via env
-const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5-mini';
-const OPENAI_GPT5_HIGH_MODEL = process.env.OPENAI_GPT5_HIGH_MODEL || 'gpt-5';
+const OPENAI_GPT5_LOW_MODEL = process.env.OPENAI_GPT5_LOW_MODEL || 'gpt-5-2025-08-07';
+const OPENAI_GPT5_HIGH_MODEL = process.env.OPENAI_GPT5_HIGH_MODEL || 'gpt-5-2025-08-07';
 const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'claude-sonnet-4-5-20250929';
 const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'deepseek-v3';
 const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
@@ -95,7 +95,7 @@ export async function fetchGpt5LowResponse(prompt: string): Promise<string> {
     const response = await http.post<OpenAIResponsesApiResponse>(
       'https://api.openai.com/v1/responses',
       {
-        model: 'gpt-5',
+        model: OPENAI_GPT5_LOW_MODEL,
         input: prompt,
         reasoning: { effort: 'low' },
         temperature: 0.7,
@@ -120,7 +120,7 @@ export async function fetchGpt5HighResponse(prompt: string): Promise<string> {
     const response = await http.post<OpenAIResponsesApiResponse>(
       'https://api.openai.com/v1/responses',
       {
-        model: 'gpt-5',
+        model: OPENAI_GPT5_HIGH_MODEL,
         input: prompt,
         reasoning: { effort: 'high' },
         temperature: 0.7,
@@ -342,7 +342,7 @@ export async function fetchGpt5LowEvaluation(prompt: string, responses: ModelRes
       const apiResponse = await http.post<OpenAIResponsesApiResponse>(
         'https://api.openai.com/v1/responses',
         {
-          model: 'gpt-5',
+          model: OPENAI_GPT5_LOW_MODEL,
           input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
           reasoning: { effort: 'low' },
           temperature: 0.3,
@@ -373,7 +373,7 @@ export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelRe
       const apiResponse = await http.post<OpenAIResponsesApiResponse>(
         'https://api.openai.com/v1/responses',
         {
-          model: 'gpt-5',
+          model: OPENAI_GPT5_HIGH_MODEL,
           input: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`,
           reasoning: { effort: 'high' },
           temperature: 0.3,
