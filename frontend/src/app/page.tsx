@@ -86,9 +86,6 @@ export default function Home() {
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 text-transparent bg-clip-text animate-gradient mb-4">
             ConsensusAI
           </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Zibda doesn't want to do homework. Zibda wants to have fun. This generates a response from each of the best AI models and has them evaluate and rate each other's responses without knowing who produced them.
-          </p>
         </div>
 
         {step === 'input' && (
