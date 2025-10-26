@@ -4,25 +4,25 @@
 
 @layer base {
   body {
-    @apply antialiased text-gray-800 bg-gray-50;
+    @apply antialiased text-base-content bg-base-100;
   }
 }
 
 @layer components {
   .prose {
-    @apply max-w-none;
+    @apply max-w-none text-base-content;
   }
   
   .prose pre {
-    @apply bg-gray-800 text-gray-100 rounded-xl shadow-lg;
+    @apply bg-neutral text-neutral-content rounded-xl shadow-lg;
   }
   
   .prose code {
-    @apply text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded;
+    @apply text-primary bg-primary/10 px-1.5 py-0.5 rounded;
   }
   
   .prose pre code {
-    @apply text-gray-100 bg-transparent p-0;
+    @apply text-neutral-content bg-transparent p-0;
   }
 }
 

@@ -54,37 +54,37 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="prompt" className="block text-lg font-medium text-gray-700 mb-2">
+          <label htmlFor="prompt" className="block text-lg font-medium text-base-content mb-2">
             Enter your prompt
           </label>
           <div className="relative">
             <textarea
               id="prompt"
               rows={5}
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ease-in-out resize-none text-gray-800 placeholder-gray-400 bg-white/50 backdrop-blur-sm"
+              className="w-full p-4 border-2 border-base-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 ease-in-out resize-none text-base-content placeholder-base-content/50 bg-base-100"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ask anything... The AI models will compete to provide the best response."
               disabled={isLoading}
             />
-            <div className="absolute bottom-3 right-3 text-sm text-gray-400">
+            <div className="absolute bottom-3 right-3 text-sm text-base-content/60">
               {prompt.length} characters
             </div>
           </div>
         </div>
         <div className="flex gap-4 w-full">
-          <section className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex-1">
+          <section className="bg-base-200 border border-base-300 rounded-xl p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold text-gray-800">Generate with:</h3>
+              <h3 className="text-md font-semibold text-base-content">Generate with:</h3>
               <div className="space-x-2 text-sm">
                 <button type="button" className="link" onClick={() => selectAll(setGenerators)}>Select all</button>
                 <span className="text-gray-300">|</span>
                 <button type="button" className="link" onClick={() => selectNone(setGenerators)}>None</button>
               </div>
             </div>
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-base-300">
               {SORTED_MODELS.map(m => (
-                <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${generators.includes(m.id) ? 'bg-blue-50' : ''}`}>
+                <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${generators.includes(m.id) ? 'bg-primary/10' : ''}`}>
                   <label className="flex items-center gap-2 cursor-pointer w-full">
                     <input
                       type="checkbox"
@@ -94,26 +94,26 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
                       disabled={isLoading}
                       aria-label={`Generate with ${m.label}`}
                     />
-                    <span className="text-sm text-gray-800 truncate">{m.label}</span>
+                    <span className="text-sm text-base-content truncate">{m.label}</span>
                   </label>
-                  <span className="ml-3 text-sm tabular-nums text-gray-600">{getDollarSigns(MODEL_COST[m.id])}</span>
+                  <span className="ml-3 text-sm tabular-nums text-base-content/80">{getDollarSigns(MODEL_COST[m.id])}</span>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex-1">
+          <section className="bg-base-200 border border-base-300 rounded-xl p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold text-gray-800">Judge with:</h3>
+              <h3 className="text-md font-semibold text-base-content">Judge with:</h3>
               <div className="space-x-2 text-sm">
                 <button type="button" className="link" onClick={() => selectAll(setJudges)}>Select all</button>
                 <span className="text-gray-300">|</span>
                 <button type="button" className="link" onClick={() => selectNone(setJudges)}>None</button>
               </div>
             </div>
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-base-300">
               {SORTED_MODELS.map(m => (
-                <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${judges.includes(m.id) ? 'bg-green-50' : ''}`}>
+                <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${judges.includes(m.id) ? 'bg-secondary/10' : ''}`}>
                   <label className="flex items-center gap-2 cursor-pointer w-full">
                     <input
                       type="checkbox"
@@ -123,9 +123,9 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
                       disabled={isLoading}
                       aria-label={`Judge with ${m.label}`}
                     />
-                    <span className="text-sm text-gray-800 truncate">{m.label}</span>
+                    <span className="text-sm text-base-content truncate">{m.label}</span>
                   </label>
-                  <span className="ml-3 text-sm tabular-nums text-gray-600">{getDollarSigns(MODEL_COST[m.id])}</span>
+                  <span className="ml-3 text-sm tabular-nums text-base-content/80">{getDollarSigns(MODEL_COST[m.id])}</span>
                 </li>
               ))}
             </ul>

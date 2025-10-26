@@ -23,9 +23,9 @@ export default function UserMenu() {
     <div className="relative">
       {!user ? (
         <div className="flex items-center gap-3">
-          <Link href="/login" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Sign in</Link>
+          <Link href="/login" className="btn btn-primary btn-sm">Sign in</Link>
           <a
-            className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
+            className="btn btn-ghost btn-sm"
             href={`${API_BASE_URL}/auth/google?clientId=${encodeURIComponent(getClientId())}`}
           >
             Continue with Google
@@ -42,10 +42,10 @@ export default function UserMenu() {
             )}
           </button>
           {open && (
-            <div className="absolute right-0 mt-2 w-48 bg-white shadow rounded-md overflow-hidden z-50">
-              <Link href="/account" className="block px-4 py-2 hover:bg-gray-100">Account</Link>
+            <div className="absolute right-0 mt-2 w-48 bg-base-100 shadow rounded-md overflow-hidden z-50">
+              <Link href="/account" className="block px-4 py-2 hover:bg-base-200">Account</Link>
               <button
-                className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                className="block w-full text-left px-4 py-2 hover:bg-base-200"
                 onClick={async () => { await logout(); window.location.reload(); }}
               >Logout</button>
             </div>
