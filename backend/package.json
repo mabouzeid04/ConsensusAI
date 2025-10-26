@@ -1,7 +1,7 @@
 {
-  "name": "ai-arena-backend",
+  "name": "consensusai-backend",
   "version": "1.0.0",
-  "description": "Backend for AI Arena comparison app",
+  "description": "Backend for ConsensusAI comparison app",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@prisma/client": "^6.18.0",
     "axios": "^1.6.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
@@ -23,6 +24,7 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.11.16",
     "nodemon": "^3.0.3",
+    "prisma": "^6.18.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }

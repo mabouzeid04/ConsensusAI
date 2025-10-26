@@ -1,17 +1,24 @@
 import { Request, Response } from 'express';
 import { 
-  fetchGpt4O1Response, 
-  fetchGpt4O3Response, 
-  fetchClaudeSonnetResponse,
+  fetchGpt5LowResponse,
+  fetchGpt5HighResponse,
+  fetchClaude45SonnetResponse,
   fetchDeepSeekR1Response,
+  fetchDeepSeekV3Response,
   fetchGemini2Response,
+  fetchGemini25ProResponse,
+  fetchGrok4Response,
   
-  fetchGpt4O1Evaluation,
-  fetchGpt4O3Evaluation,
-  fetchClaudeSonnetEvaluation,
+  fetchGpt5LowEvaluation,
+  fetchGpt5HighEvaluation,
+  fetchClaude45SonnetEvaluation,
   fetchDeepSeekR1Evaluation,
-  fetchGemini2Evaluation
+  fetchDeepSeekV3Evaluation,
+  fetchGemini2Evaluation,
+  fetchGemini25ProEvaluation,
+  fetchGrok4Evaluation,
 } from '../services/aiServices';
+import { createComparison } from '../services/historyService';
 
 // Type definitions
 interface ModelResponse {
@@ -36,30 +43,45 @@ interface ResponseWithEvaluations {
 
 // Controller functions
 const MODEL_REGISTRY = {
-  gpt4o_t07: {
-    label: 'OpenAI GPT-4o (T0.7)',
-    respond: fetchGpt4O1Response,
-    evaluate: fetchGpt4O1Evaluation,
+  gpt5_low: {
+    label: 'OpenAI GPT-5 Low',
+    respond: fetchGpt5LowResponse,
+    evaluate: fetchGpt5LowEvaluation,
   },
-  gpt4o_t10: {
-    label: 'OpenAI GPT-4o (T1.0)',
-    respond: fetchGpt4O3Response,
-    evaluate: fetchGpt4O3Evaluation,
+  gpt5_high: {
+    label: 'OpenAI GPT-5 High',
+    respond: fetchGpt5HighResponse,
+    evaluate: fetchGpt5HighEvaluation,
   },
-  claude_37_sonnet: {
-    label: 'Claude 3.7 Sonnet',
-    respond: fetchClaudeSonnetResponse,
-    evaluate: fetchClaudeSonnetEvaluation,
+  claude_45_sonnet: {
+    label: 'Claude 4.5 Sonnet',
+    respond: fetchClaude45SonnetResponse,
+    evaluate: fetchClaude45SonnetEvaluation,
   },
   deepseek_r1: {
     label: 'DeepSeek R1',
     respond: fetchDeepSeekR1Response,
     evaluate: fetchDeepSeekR1Evaluation,
   },
+  deepseek_v3: {
+    label: 'DeepSeek V3',
+    respond: fetchDeepSeekV3Response,
+    evaluate: fetchDeepSeekV3Evaluation,
+  },
   gemini_20_flash: {
     label: 'Gemini 2.0 Flash',
     respond: fetchGemini2Response,
     evaluate: fetchGemini2Evaluation,
+  },
+  gemini_25_pro: {
+    label: 'Gemini 2.5 Pro',
+    respond: fetchGemini25ProResponse,
+    evaluate: fetchGemini25ProEvaluation,
+  },
+  grok_4: {
+    label: 'Grok 4',
+    respond: fetchGrok4Response,
+    evaluate: fetchGrok4Evaluation,
   },
 } as const;
 type ModelId = keyof typeof MODEL_REGISTRY;
@@ -159,9 +181,28 @@ export const evaluateResponses = async (req: Request, res: Response) => {
       };
     });
 
+    // Persist comparison
+    const clientId = (req.headers['x-client-id'] as string) || '';
+    let comparisonId: string | undefined = undefined;
+    if (clientId) {
+      try {
+        const created = await createComparison({
+          clientId,
+          prompt,
+          generators: (originalMapping as ModelResponse[]).map(m => m.id as string).filter(Boolean),
+          judges: (chosenJudges as string[]),
+          data: { prompt, responsesWithEvaluations },
+        });
+        comparisonId = created.id;
+      } catch (err) {
+        console.error('Failed to persist comparison:', err);
+      }
+    }
+
     res.status(200).json({ 
       prompt,
-      responsesWithEvaluations
+      responsesWithEvaluations,
+      comparisonId,
     });
   } catch (error) {
     console.error('Error evaluating responses:', error);

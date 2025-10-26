@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { promptRouter } from './routes/prompt';
+import { historyRouter } from './routes/history';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/prompt', promptRouter);
+app.use('/api/history', historyRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

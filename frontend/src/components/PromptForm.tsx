@@ -8,14 +8,31 @@ interface PromptFormProps {
 export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
   const [prompt, setPrompt] = useState('');
   const MODELS = [
-    { id: 'gpt4o_t07', label: 'GPT-4o (T0.7)' },
-    { id: 'gpt4o_t10', label: 'GPT-4o (T1.0)' },
-    { id: 'claude_37_sonnet', label: 'Claude 3.7 Sonnet' },
+    { id: 'gpt5_low', label: 'GPT-5 Low' },
+    { id: 'gpt5_high', label: 'GPT-5 High' },
+    { id: 'claude_45_sonnet', label: 'Claude 4.5 Sonnet' },
     { id: 'deepseek_r1', label: 'DeepSeek R1' },
+    { id: 'deepseek_v3', label: 'DeepSeek V3' },
     { id: 'gemini_20_flash', label: 'Gemini 2.0 Flash' },
+    { id: 'gemini_25_pro', label: 'Gemini 2.5 Pro' },
+    { id: 'grok_4', label: 'Grok 4' },
   ];
-  const [generators, setGenerators] = useState<string[]>(MODELS.map(m => m.id));
-  const [judges, setJudges] = useState<string[]>(MODELS.map(m => m.id));
+  const MODEL_COST: Record<string, number> = {
+    gpt5_high: 4,
+    gpt5_low: 3,
+    claude_45_sonnet: 4,
+    gemini_20_flash: 2,
+    gemini_25_pro: 3,
+    deepseek_v3: 2,
+    deepseek_r1: 1,
+    grok_4: 3,
+  };
+  const getDollarSigns = (tier: number) => '$'.repeat(Math.max(1, Math.min(4, tier || 1)));
+  const SORTED_MODELS = useMemo(() => {
+    return [...MODELS].sort((a, b) => (MODEL_COST[b.id] || 0) - (MODEL_COST[a.id] || 0));
+  }, []);
+  const [generators, setGenerators] = useState<string[]>([]);
+  const [judges, setJudges] = useState<string[]>([]);
 
   const evalCount = useMemo(() => generators.length * judges.length, [generators.length, judges.length]);
 
@@ -55,60 +72,65 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
             </div>
           </div>
         </div>
-        <div className="space-y-4">
-          <section className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <div className="flex gap-4 w-full">
+          <section className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold text-gray-800">Generate with</h3>
+              <h3 className="text-md font-semibold text-gray-800">Generate with:</h3>
               <div className="space-x-2 text-sm">
                 <button type="button" className="link" onClick={() => selectAll(setGenerators)}>Select all</button>
                 <span className="text-gray-300">|</span>
                 <button type="button" className="link" onClick={() => selectNone(setGenerators)}>None</button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {MODELS.map(m => (
-                <label key={m.id} className={`px-3 py-2 rounded-lg border cursor-pointer ${generators.includes(m.id) ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'}`}>
-                  <input
-                    type="checkbox"
-                    className="mr-2 align-middle"
-                    checked={generators.includes(m.id)}
-                    onChange={() => toggle(generators, setGenerators, m.id)}
-                    disabled={isLoading}
-                  />
-                  <span className="text-sm text-gray-800">{m.label}</span>
-                </label>
+            <ul className="divide-y divide-gray-200">
+              {SORTED_MODELS.map(m => (
+                <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${generators.includes(m.id) ? 'bg-blue-50' : ''}`}>
+                  <label className="flex items-center gap-2 cursor-pointer w-full">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm"
+                      checked={generators.includes(m.id)}
+                      onChange={() => toggle(generators, setGenerators, m.id)}
+                      disabled={isLoading}
+                      aria-label={`Generate with ${m.label}`}
+                    />
+                    <span className="text-sm text-gray-800 truncate">{m.label}</span>
+                  </label>
+                  <span className="ml-3 text-sm tabular-nums text-gray-600">{getDollarSigns(MODEL_COST[m.id])}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
 
-          <section className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <section className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold text-gray-800">Judge with</h3>
+              <h3 className="text-md font-semibold text-gray-800">Judge with:</h3>
               <div className="space-x-2 text-sm">
                 <button type="button" className="link" onClick={() => selectAll(setJudges)}>Select all</button>
                 <span className="text-gray-300">|</span>
                 <button type="button" className="link" onClick={() => selectNone(setJudges)}>None</button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {MODELS.map(m => (
-                <label key={m.id} className={`px-3 py-2 rounded-lg border cursor-pointer ${judges.includes(m.id) ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
-                  <input
-                    type="checkbox"
-                    className="mr-2 align-middle"
-                    checked={judges.includes(m.id)}
-                    onChange={() => toggle(judges, setJudges, m.id)}
-                    disabled={isLoading}
-                  />
-                  <span className="text-sm text-gray-800">{m.label}</span>
-                </label>
+            <ul className="divide-y divide-gray-200">
+              {SORTED_MODELS.map(m => (
+                <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${judges.includes(m.id) ? 'bg-green-50' : ''}`}>
+                  <label className="flex items-center gap-2 cursor-pointer w-full">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm"
+                      checked={judges.includes(m.id)}
+                      onChange={() => toggle(judges, setJudges, m.id)}
+                      disabled={isLoading}
+                      aria-label={`Judge with ${m.label}`}
+                    />
+                    <span className="text-sm text-gray-800 truncate">{m.label}</span>
+                  </label>
+                  <span className="ml-3 text-sm tabular-nums text-gray-600">{getDollarSigns(MODEL_COST[m.id])}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
 
-          <div className="text-sm text-gray-600">
-            {generators.length} generator{generators.length !== 1 ? 's' : ''}, {judges.length} judge{judges.length !== 1 ? 's' : ''} → {generators.length} responses, {judges.length}×{generators.length} evaluations
-          </div>
         </div>
         <div className="flex justify-end">
           <button

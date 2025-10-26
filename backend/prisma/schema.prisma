@@ -1,0 +1,25 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Comparison {
+  id         String   @id @default(cuid())
+  clientId   String
+  prompt     String
+  generators Json
+  judges     Json
+  data       Json
+  createdAt  DateTime @default(now())
+
+  @@index([clientId])
+  @@index([createdAt])
+}

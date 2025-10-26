@@ -5,6 +5,7 @@ import { useState } from 'react';
 import PromptForm from '../components/PromptForm';
 import ResponseList from '../components/ResponseList';
 import { submitPrompt, evaluateResponses } from '../services/api';
+import Link from 'next/link';
 
 interface ModelResponse {
   model: string;
@@ -24,6 +25,7 @@ interface EvaluationData {
       explanation: string;
     }>;
   }>;
+  comparisonId?: string;
 }
 
 export default function Home() {
@@ -33,6 +35,7 @@ export default function Home() {
   const [step, setStep] = useState<'input' | 'evaluating' | 'results'>('input');
   const [shuffledResponses, setShuffledResponses] = useState<ModelResponse[]>([]);
   const [originalMapping, setOriginalMapping] = useState<ModelResponse[]>([]);
+  const [comparisonId, setComparisonId] = useState<string | null>(null);
 
   const handlePromptSubmit = async ({ prompt, generators, judges }: { prompt: string; generators: string[]; judges: string[] }) => {
     setIsLoading(true);
@@ -52,6 +55,11 @@ export default function Home() {
       });
       
       setResults(evaluationData);
+      if (evaluationData?.comparisonId) {
+        setComparisonId(evaluationData.comparisonId);
+      } else {
+        setComparisonId(null);
+      }
       setStep('results');
     } catch (error) {
       console.error('Error:', error);
@@ -68,6 +76,7 @@ export default function Home() {
     setShuffledResponses([]);
     setOriginalMapping([]);
     setStep('input');
+    setComparisonId(null);
   };
 
   return (
@@ -75,7 +84,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 text-transparent bg-clip-text animate-gradient mb-4">
-            AI Arena
+            ConsensusAI
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Zibda doesn't want to do homework. Zibda wants to have fun. This generates a response from each of the best AI models and has them evaluate and rate each other's responses without knowing who produced them.
@@ -85,6 +94,9 @@ export default function Home() {
         {step === 'input' && (
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-2xl shadow-xl p-8 backdrop-blur-sm bg-opacity-90">
+              <div className="flex justify-end mb-2">
+                <Link href="/history" className="btn normal-case bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200">View History</Link>
+              </div>
               <PromptForm onSubmit={handlePromptSubmit} isLoading={isLoading} />
             </div>
           </div>
@@ -122,13 +134,18 @@ export default function Home() {
 
             <ResponseList results={results} />
 
-            <div className="text-center mt-8">
+            <div className="text-center mt-8 space-x-4">
               <button
                 onClick={handleReset}
                 className="btn btn-primary btn-lg normal-case"
               >
                 Start New Comparison
               </button>
+              {comparisonId && (
+                <Link href={`/history/${comparisonId}`} className="btn btn-lg normal-case bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200">
+                  View in History
+                </Link>
+              )}
             </div>
           </div>
         )}
