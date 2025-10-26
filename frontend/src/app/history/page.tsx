@@ -59,14 +59,23 @@ export default function HistoryPage() {
                 <div className="bg-white rounded-xl shadow p-6 hover:shadow-md transition">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm text-gray-500">
-                      {new Date(item.createdAt).toLocaleString()}
+                      {new Date(item.createdAt).toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                      })}
                     </div>
                     <div className="text-sm text-gray-700">
                       <span className="mr-4">Responses: {item.summary.numResponses}</span>
                       <span>Best avg: {item.summary.bestAverage.toFixed(1)}</span>
                     </div>
                   </div>
-                  <div className="text-gray-800 line-clamp-2">{item.prompt}</div>
+                  <div className="text-gray-800 line-clamp-2" title={item.prompt}>
+                    {item.prompt.length > 160 ? `${item.prompt.slice(0, 160)}…` : item.prompt}
+                  </div>
                 </div>
               </Link>
             ))

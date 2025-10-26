@@ -66,7 +66,14 @@ export default function HistoryDetailPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8 backdrop-blur-sm bg-opacity-90 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Original Prompt</h2>
-            <div className="text-sm text-gray-500">{new Date(data.createdAt).toLocaleString()}</div>
+            <div className="text-sm text-gray-500">{new Date(data.createdAt).toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+            })}</div>
           </div>
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
             <p className="text-gray-700 text-lg">{data.prompt}</p>

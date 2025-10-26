@@ -13,7 +13,7 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
     { id: 'claude_45_sonnet', label: 'Claude 4.5 Sonnet' },
     { id: 'deepseek_r1', label: 'DeepSeek R1' },
     { id: 'deepseek_v3', label: 'DeepSeek V3' },
-    { id: 'gemini_20_flash', label: 'Gemini 2.0 Flash' },
+    { id: 'gemini_20_flash', label: 'Gemini 2.5 Flash' },
     { id: 'gemini_25_pro', label: 'Gemini 2.5 Pro' },
     { id: 'grok_4', label: 'Grok 4' },
   ];

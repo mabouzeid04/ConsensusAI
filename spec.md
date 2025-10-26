@@ -44,7 +44,7 @@
   - User can enter multiline text and submit.
   - Submit disabled when empty.
 - **Submission**
-  - Send prompt to backend; backend concurrently queries OpenAI o1, o3-mini, Claude 3.7 Sonnet, DeepSeek R1, Gemini 2.0 Flash.
+  - Send prompt to backend; backend concurrently queries OpenAI o1, o3-mini, Claude 3.7 Sonnet, DeepSeek R1, Gemini 2.5 Flash.
   - Tolerate partial failures; only successful model outputs are used.
   - Shuffle successful responses and label A–E in random order.
   - Return shuffled responses and original mapping.
@@ -83,11 +83,11 @@
     {
       "shuffledResponses": [
         { "model": "OpenAI o1", "response": "...", "label": "B" },
-        { "model": "Gemini 2.0 Flash", "response": "...", "label": "D" }
+        { "model": "Gemini 2.5 Flash", "response": "...", "label": "D" }
       ],
       "originalMapping": [
         { "model": "OpenAI o1", "response": "..." },
-        { "model": "Gemini 2.0 Flash", "response": "..." }
+        { "model": "Gemini 2.5 Flash", "response": "..." }
       ]
     }
     ```

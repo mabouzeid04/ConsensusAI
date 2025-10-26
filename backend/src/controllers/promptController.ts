@@ -70,7 +70,7 @@ const MODEL_REGISTRY = {
     evaluate: fetchDeepSeekV3Evaluation,
   },
   gemini_20_flash: {
-    label: 'Gemini 2.0 Flash',
+    label: 'Gemini 2.5 Flash',
     respond: fetchGemini2Response,
     evaluate: fetchGemini2Evaluation,
   },

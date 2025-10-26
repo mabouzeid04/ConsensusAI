@@ -517,7 +517,7 @@ export async function fetchGemini2Evaluation(prompt: string, responses: ModelRes
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
       const apiResponse = await googleAI.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
       });
       
@@ -528,7 +528,7 @@ export async function fetchGemini2Evaluation(prompt: string, responses: ModelRes
     
     return evaluations;
   } catch (error) {
-    console.error('Error evaluating with Gemini 2.0 Flash:', error);
+    console.error('Error evaluating with Gemini 2.5 Flash:', error);
     throw error;
   }
 }
