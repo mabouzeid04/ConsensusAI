@@ -55,13 +55,13 @@ export const getModelResponses = async (req: Request, res: Response) => {
     const modelResponses: ModelResponse[] = [];
     
     if (gpt4O1.status === 'fulfilled') {
-      modelResponses.push({ model: 'OpenAI o1', response: gpt4O1.value });
+      modelResponses.push({ model: 'OpenAI GPT-4o (T0.7)', response: gpt4O1.value });
     } else {
       console.error('Error fetching OpenAI o1 response:', gpt4O1.reason);
     }
     
     if (gpt4O3.status === 'fulfilled') {
-      modelResponses.push({ model: 'OpenAI o3-mini', response: gpt4O3.value });
+      modelResponses.push({ model: 'OpenAI GPT-4o (T1.0)', response: gpt4O3.value });
     } else {
       console.error('Error fetching OpenAI o3-mini response:', gpt4O3.reason);
     }
@@ -115,7 +115,7 @@ export const evaluateResponses = async (req: Request, res: Response) => {
     }
 
     const evaluationPromises = [];
-    const models = ['OpenAI o1', 'OpenAI o3-mini', 'Claude 3.7 Sonnet', 'DeepSeek R1', 'Gemini 2.0 Flash'];
+    const models = ['OpenAI GPT-4o (T0.7)', 'OpenAI GPT-4o (T1.0)', 'Claude 3.7 Sonnet', 'DeepSeek R1', 'Gemini 2.0 Flash'];
     
     // Use only available models for evaluation
     const availableModels = models.filter(model => 
@@ -129,13 +129,18 @@ export const evaluateResponses = async (req: Request, res: Response) => {
     }
 
     const allEvaluationsResults = await Promise.allSettled(evaluationPromises);
-    
-    // Filter successful evaluations
-    const allEvaluations = allEvaluationsResults
-      .filter((result): result is PromiseFulfilledResult<Array<{score: number, explanation: string}>> => 
-        result.status === 'fulfilled')
-      .map(result => result.value);
-    
+
+    // Keep alignment with availableModels; for rejected evaluators, synthesize default evaluations
+    const evaluationsByModel: Array<Array<{ score: number, explanation: string }>> = allEvaluationsResults.map((result, i) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      return (shuffledResponses as ModelResponse[]).map(() => ({
+        score: 0,
+        explanation: `Evaluation with ${availableModels[i]} failed`
+      }));
+    });
+
     // Organize evaluations by response
     const responsesWithEvaluations: ResponseWithEvaluations[] = shuffledResponses.map((response: ModelResponse, index: number) => {
       // Find original model for this response
@@ -144,22 +149,11 @@ export const evaluateResponses = async (req: Request, res: Response) => {
       )?.model || 'Unknown';
 
       // Collect all evaluations for this response
-      const evaluations = allEvaluations.map((modelEval, evalIndex) => {
-        // Ensure modelEval and modelEval[index] exist
-        if (!modelEval || !modelEval[index]) {
-          return {
-            model: availableModels[evalIndex] || 'Unknown',
-            score: 0,
-            explanation: 'Evaluation failed'
-          };
-        }
-        
-        return {
-          model: availableModels[evalIndex],
-          score: modelEval[index].score,
-          explanation: modelEval[index].explanation
-        };
-      });
+      const evaluations = evaluationsByModel.map((modelEval, evalIndex) => ({
+        model: availableModels[evalIndex] || 'Unknown',
+        score: modelEval?.[index]?.score ?? 0,
+        explanation: modelEval?.[index]?.explanation ?? 'Evaluation failed'
+      }));
 
       return {
         label: response.label || '',
@@ -202,8 +196,8 @@ async function evaluateResponsesWithModel(
 ): Promise<Array<{ score: number, explanation: string }>> {
   // Create a function that maps model names to their evaluation function
   const evaluationFunctions: Record<string, Function> = {
-    'OpenAI o1': fetchGpt4O1Evaluation,
-    'OpenAI o3-mini': fetchGpt4O3Evaluation,
+    'OpenAI GPT-4o (T0.7)': fetchGpt4O1Evaluation,
+    'OpenAI GPT-4o (T1.0)': fetchGpt4O3Evaluation,
     'Claude 3.7 Sonnet': fetchClaudeSonnetEvaluation,
     'DeepSeek R1': fetchDeepSeekR1Evaluation,
     'Gemini 2.0 Flash': fetchGemini2Evaluation

@@ -28,10 +28,7 @@ export default function ResponseCard({ responseData }: ResponseCardProps) {
       <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-100">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl font-semibold text-gray-700">Response {label}</span>
-            <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-              {model}
-            </span>
+            <span className="text-2xl font-semibold text-gray-700">{model}</span>
           </div>
           <div className={`flex items-center space-x-2 ${scoreColor} bg-white px-4 py-2 rounded-full shadow-sm`}>
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

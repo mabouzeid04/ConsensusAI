@@ -61,12 +61,14 @@ interface DeepSeekResponse {
   }>;
 }
 
-// Mock implementations for demonstration
-// In a real app, these would make actual API calls to the respective services
+// Shared axios instance with timeouts
+const http = axios.create({
+  timeout: 30000,
+});
 
 export async function fetchGpt4O1Response(prompt: string): Promise<string> {
   try {
-    const response = await axios.post<OpenAIResponse>(
+    const response = await http.post<OpenAIResponse>(
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-4o',
@@ -93,7 +95,7 @@ export async function fetchGpt4O1Response(prompt: string): Promise<string> {
 
 export async function fetchGpt4O3Response(prompt: string): Promise<string> {
   try {
-    const response = await axios.post<OpenAIResponse>(
+    const response = await http.post<OpenAIResponse>(
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-4o',
@@ -120,22 +122,19 @@ export async function fetchGpt4O3Response(prompt: string): Promise<string> {
 
 export async function fetchClaudeSonnetResponse(prompt: string): Promise<string> {
   try {
-    const response = await axios.post<AnthropicResponse>(
-      'https://api.anthropic.com/v1/complete',
-      {
-        model: 'claude-3-7-sonnet-20250219',
-        prompt: prompt,
-        max_tokens_to_sample: 1000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.ANTHROPIC_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    
-    return response.data.content[0].text;
+    const apiResponse = await anthropic.messages.create({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 1000,
+      messages: [
+        { role: 'user', content: prompt }
+      ]
+    });
+
+    let content = '';
+    if (apiResponse.content[0].type === 'text') {
+      content = apiResponse.content[0].text;
+    }
+    return content;
   } catch (error) {
     console.error('Error fetching Claude 3.7 Sonnet response:', error);
     throw error;
@@ -144,7 +143,7 @@ export async function fetchClaudeSonnetResponse(prompt: string): Promise<string>
 
 export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
   try {
-    const response = await axios.post<DeepSeekResponse>(
+    const response = await http.post<DeepSeekResponse>(
       'https://api.deepseek.com/v1/chat/completions',
       {
         model: 'deepseek-reasoner',
@@ -172,7 +171,7 @@ export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
 
 export async function fetchGemini2Response(prompt: string): Promise<string> {
   try {
-    const response = await axios.post<GeminiResponse>(
+    const response = await http.post<GeminiResponse>(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
       {
         contents: [
@@ -204,7 +203,7 @@ export async function fetchGpt4O1Evaluation(prompt: string, responses: ModelResp
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await axios.post<OpenAIResponse>(
+      const apiResponse = await http.post<OpenAIResponse>(
         'https://api.openai.com/v1/chat/completions',
         {
           model: 'gpt-4o',
@@ -242,7 +241,7 @@ export async function fetchGpt4O3Evaluation(prompt: string, responses: ModelResp
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await axios.post<OpenAIResponse>(
+      const apiResponse = await http.post<OpenAIResponse>(
         'https://api.openai.com/v1/chat/completions',
         {
           model: 'gpt-4o',
@@ -310,7 +309,7 @@ export async function fetchDeepSeekR1Evaluation(prompt: string, responses: Model
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await axios.post<DeepSeekResponse>(
+      const apiResponse = await http.post<DeepSeekResponse>(
         'https://api.deepseek.com/v1/chat/completions',
         {
           model: 'deepseek-reasoner',
@@ -348,8 +347,8 @@ export async function fetchGemini2Evaluation(prompt: string, responses: ModelRes
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
       
-      const apiResponse = await axios.post<GeminiResponse>(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+      const apiResponse = await http.post<GeminiResponse>(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
         {
           contents: [
             {
