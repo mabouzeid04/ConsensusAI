@@ -10,6 +10,8 @@ export default function AccountPage() {
   const [balanceCents, setBalanceCents] = useState<number>(0);
   const [usage, setUsage] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
+  const [topUpUsd, setTopUpUsd] = useState<string>('5.00');
+  const [topUpErr, setTopUpErr] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -52,25 +54,48 @@ export default function AccountPage() {
           </div>
 
           <div className="mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="text-lg font-semibold">Wallet</div>
-              <button
-                className="btn btn-sm btn-primary"
-                disabled={busy}
-                onClick={async () => {
-                  try {
-                    setBusy(true);
-                    const res = await creditWallet(500); // $5.00 test top-up
-                    setBalanceCents(res.balanceCents);
-                  } catch (e) {
-                    console.error(e);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >Top up $5</button>
+              <div className="flex items-center gap-2">
+                <label className="input input-bordered input-sm flex items-center gap-2 w-36">
+                  <span className="opacity-60">$</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={topUpUsd}
+                    onChange={(e) => setTopUpUsd(e.target.value)}
+                    className="grow"
+                    placeholder="Amount"
+                  />
+                </label>
+                <button
+                  className="btn btn-sm btn-primary"
+                  disabled={busy}
+                  onClick={async () => {
+                    try {
+                      setTopUpErr(null);
+                      setBusy(true);
+                      const amt = parseFloat(topUpUsd);
+                      if (!Number.isFinite(amt) || amt <= 0) {
+                        setTopUpErr('Enter a valid amount');
+                        return;
+                      }
+                      const cents = Math.round(amt * 100);
+                      const res = await creditWallet(cents);
+                      setBalanceCents(res.balanceCents);
+                    } catch (e) {
+                      console.error(e);
+                      setTopUpErr('Top up failed');
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >Top up</button>
+              </div>
             </div>
             <div className="mt-2 text-2xl">${(balanceCents / 100).toFixed(2)}</div>
+            {topUpErr && <div className="mt-2 text-sm text-error">{topUpErr}</div>}
           </div>
 
           <div>
