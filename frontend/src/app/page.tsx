@@ -109,7 +109,7 @@ export default function Home() {
                 <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 <h2 className="text-2xl font-semibold text-gray-800">Processing Your Request</h2>
                 <p className="text-gray-600">
-                  Collecting responses from 5 AI models and gathering their evaluations...
+                  Collecting responses from AI models and gathering their evaluations...
                 </p>
               </div>
             </div>

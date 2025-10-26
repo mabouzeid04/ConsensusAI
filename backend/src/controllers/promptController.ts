@@ -19,6 +19,7 @@ import {
   fetchGrok4Evaluation,
 } from '../services/aiServices';
 import { createComparison } from '../services/historyService';
+import { verifyAuthToken } from '../utils/jwt';
 
 // Type definitions
 interface ModelResponse {
@@ -183,11 +184,15 @@ export const evaluateResponses = async (req: Request, res: Response) => {
 
     // Persist comparison
     const clientId = (req.headers['x-client-id'] as string) || '';
+    // Try to read user from auth cookie if present
+    const token = (req as any).cookies?.auth || '';
+    const payload = token ? verifyAuthToken(token) : null;
     let comparisonId: string | undefined = undefined;
     if (clientId) {
       try {
         const created = await createComparison({
           clientId,
+          userId: payload?.userId || null,
           prompt,
           generators: (originalMapping as ModelResponse[]).map(m => m.id as string).filter(Boolean),
           judges: (chosenJudges as string[]),

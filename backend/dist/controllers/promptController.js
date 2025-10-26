@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluateResponses = exports.getModelResponses = void 0;
 const aiServices_1 = require("../services/aiServices");
 const historyService_1 = require("../services/historyService");
+const jwt_1 = require("../utils/jwt");
 // Controller functions
 const MODEL_REGISTRY = {
     gpt5_low: {
@@ -96,6 +97,7 @@ const getModelResponses = (req, res) => __awaiter(void 0, void 0, void 0, functi
 });
 exports.getModelResponses = getModelResponses;
 const evaluateResponses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { prompt, shuffledResponses, originalMapping, judges } = req.body;
         if (!prompt || !shuffledResponses || !originalMapping) {
@@ -138,11 +140,15 @@ const evaluateResponses = (req, res) => __awaiter(void 0, void 0, void 0, functi
         });
         // Persist comparison
         const clientId = req.headers['x-client-id'] || '';
+        // Try to read user from auth cookie if present
+        const token = ((_a = req.cookies) === null || _a === void 0 ? void 0 : _a.auth) || '';
+        const payload = token ? (0, jwt_1.verifyAuthToken)(token) : null;
         let comparisonId = undefined;
         if (clientId) {
             try {
                 const created = yield (0, historyService_1.createComparison)({
                     clientId,
+                    userId: (payload === null || payload === void 0 ? void 0 : payload.userId) || null,
                     prompt,
                     generators: originalMapping.map(m => m.id).filter(Boolean),
                     judges: chosenJudges,
