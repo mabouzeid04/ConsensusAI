@@ -54,29 +54,30 @@ export default function AccountPage() {
           </div>
 
           <div className="mb-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="text-lg font-semibold">Wallet</div>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <div className="text-lg font-semibold">Wallet</div>
+                <div className="mt-2 text-2xl">${(balanceCents / 100).toFixed(2)}</div>
+              </div>
               <div className="flex flex-col items-end gap-2">
-                <div className="join">
-                  <div className="join-item input input-bordered input-sm flex items-center gap-2 w-40 bg-base-100">
-                    <span className="opacity-60">$</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*[.,]?[0-9]{0,2}"
-                      value={topUpUsd}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const cleaned = raw.replace(/[^0-9.]/g, '');
-                        const limited = cleaned.replace(/^(\d*\.?\d{0,2}).*$/, '$1');
-                        setTopUpUsd(limited);
-                      }}
-                      className="grow"
-                      placeholder="Amount"
-                    />
-                  </div>
+                <div className="input-group input-group-sm">
+                  <span>$</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]{0,2}"
+                    value={topUpUsd}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const cleaned = raw.replace(/[^0-9.]/g, '');
+                      const limited = cleaned.replace(/^(\d*\.?\d{0,2}).*$/, '$1');
+                      setTopUpUsd(limited);
+                    }}
+                    placeholder="Amount"
+                    className="input input-bordered w-40"
+                  />
                   <button
-                    className="join-item btn btn-sm btn-primary"
+                    className="btn btn-primary"
                     disabled={busy}
                     onClick={async () => {
                       try {
@@ -103,24 +104,23 @@ export default function AccountPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="badge badge-outline cursor-pointer"
+                    className="btn btn-xs btn-outline rounded-full"
                     onClick={() => setTopUpUsd('5.00')}
                   >$5</button>
                   <button
                     type="button"
-                    className="badge badge-outline cursor-pointer"
+                    className="btn btn-xs btn-outline rounded-full"
                     onClick={() => setTopUpUsd('10.00')}
                   >$10</button>
                   <button
                     type="button"
-                    className="badge badge-outline cursor-pointer"
+                    className="btn btn-xs btn-outline rounded-full"
                     onClick={() => setTopUpUsd('20.00')}
                   >$20</button>
                 </div>
+                {topUpErr && <div className="text-xs text-error">{topUpErr}</div>}
               </div>
             </div>
-            <div className="mt-2 text-2xl">${(balanceCents / 100).toFixed(2)}</div>
-            {topUpErr && <div className="mt-2 text-sm text-error">{topUpErr}</div>}
           </div>
 
           <div>
