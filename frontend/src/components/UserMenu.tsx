@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getMe, logout, SessionUser, API_BASE_URL, getClientId } from '../services/api';
 
@@ -18,6 +18,19 @@ export default function UserMenu() {
   }, []);
 
   const initials = user?.name?.trim()?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U';
+  const closeTimer = useRef<number | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), 120);
+  };
 
   return (
     <div className="relative">
@@ -32,12 +45,14 @@ export default function UserMenu() {
           </a>
         </div>
       ) : (
-        <div
-          className="relative"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-        >
-          <button aria-haspopup="menu" aria-expanded={open} className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center">
+        <div className="relative">
+          <button
+            aria-haspopup="menu"
+            aria-expanded={open}
+            className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center"
+            onMouseEnter={() => { cancelClose(); setOpen(true); }}
+            onMouseLeave={scheduleClose}
+          >
             {user.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.imageUrl} alt="avatar" className="w-9 h-9 rounded-full object-cover" />
@@ -46,7 +61,12 @@ export default function UserMenu() {
             )}
           </button>
           {open && (
-            <div className="absolute right-0 mt-2 w-48 bg-base-100 shadow rounded-md overflow-hidden z-50" role="menu">
+            <div
+              className="absolute right-0 mt-2 w-48 bg-base-100 shadow rounded-md overflow-hidden z-50"
+              role="menu"
+              onMouseEnter={cancelClose}
+              onMouseLeave={() => setOpen(false)}
+            >
               <Link href="/account" className="block px-4 py-2 hover:bg-base-200" role="menuitem">Account</Link>
               <button
                 className="block w-full text-left px-4 py-2 hover:bg-base-200"
