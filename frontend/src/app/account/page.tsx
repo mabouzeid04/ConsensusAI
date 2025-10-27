@@ -56,42 +56,67 @@ export default function AccountPage() {
           <div className="mb-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="text-lg font-semibold">Wallet</div>
-              <div className="flex items-center gap-2">
-                <label className="input input-bordered input-sm flex items-center gap-2 w-36">
-                  <span className="opacity-60">$</span>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={topUpUsd}
-                    onChange={(e) => setTopUpUsd(e.target.value)}
-                    className="grow"
-                    placeholder="Amount"
-                  />
-                </label>
-                <button
-                  className="btn btn-sm btn-primary"
-                  disabled={busy}
-                  onClick={async () => {
-                    try {
-                      setTopUpErr(null);
-                      setBusy(true);
-                      const amt = parseFloat(topUpUsd);
-                      if (!Number.isFinite(amt) || amt <= 0) {
-                        setTopUpErr('Enter a valid amount');
-                        return;
+              <div className="flex flex-col items-end gap-2">
+                <div className="join">
+                  <div className="join-item input input-bordered input-sm flex items-center gap-2 w-40 bg-base-100">
+                    <span className="opacity-60">$</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]{0,2}"
+                      value={topUpUsd}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const cleaned = raw.replace(/[^0-9.]/g, '');
+                        const limited = cleaned.replace(/^(\d*\.?\d{0,2}).*$/, '$1');
+                        setTopUpUsd(limited);
+                      }}
+                      className="grow"
+                      placeholder="Amount"
+                    />
+                  </div>
+                  <button
+                    className="join-item btn btn-sm btn-primary"
+                    disabled={busy}
+                    onClick={async () => {
+                      try {
+                        setTopUpErr(null);
+                        setBusy(true);
+                        const amt = Number.parseFloat(topUpUsd);
+                        if (!Number.isFinite(amt) || amt <= 0) {
+                          setTopUpErr('Enter a valid amount');
+                          return;
+                        }
+                        const cents = Math.round(amt * 100);
+                        const res = await creditWallet(cents);
+                        setBalanceCents(res.balanceCents);
+                        setTopUpUsd(amt.toFixed(2));
+                      } catch (e) {
+                        console.error(e);
+                        setTopUpErr('Top up failed');
+                      } finally {
+                        setBusy(false);
                       }
-                      const cents = Math.round(amt * 100);
-                      const res = await creditWallet(cents);
-                      setBalanceCents(res.balanceCents);
-                    } catch (e) {
-                      console.error(e);
-                      setTopUpErr('Top up failed');
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >Top up</button>
+                    }}
+                  >Top up</button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="badge badge-outline cursor-pointer"
+                    onClick={() => setTopUpUsd('5.00')}
+                  >$5</button>
+                  <button
+                    type="button"
+                    className="badge badge-outline cursor-pointer"
+                    onClick={() => setTopUpUsd('10.00')}
+                  >$10</button>
+                  <button
+                    type="button"
+                    className="badge badge-outline cursor-pointer"
+                    onClick={() => setTopUpUsd('20.00')}
+                  >$20</button>
+                </div>
               </div>
             </div>
             <div className="mt-2 text-2xl">${(balanceCents / 100).toFixed(2)}</div>
