@@ -32,8 +32,12 @@ export default function UserMenu() {
           </a>
         </div>
       ) : (
-        <div>
-          <button onClick={() => setOpen(v => !v)} className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center">
+        <div
+          className="relative"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <button aria-haspopup="menu" aria-expanded={open} className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center">
             {user.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.imageUrl} alt="avatar" className="w-9 h-9 rounded-full object-cover" />
@@ -42,11 +46,12 @@ export default function UserMenu() {
             )}
           </button>
           {open && (
-            <div className="absolute right-0 mt-2 w-48 bg-base-100 shadow rounded-md overflow-hidden z-50">
-              <Link href="/account" className="block px-4 py-2 hover:bg-base-200">Account</Link>
+            <div className="absolute right-0 mt-2 w-48 bg-base-100 shadow rounded-md overflow-hidden z-50" role="menu">
+              <Link href="/account" className="block px-4 py-2 hover:bg-base-200" role="menuitem">Account</Link>
               <button
                 className="block w-full text-left px-4 py-2 hover:bg-base-200"
                 onClick={async () => { await logout(); window.location.reload(); }}
+                role="menuitem"
               >Logout</button>
             </div>
           )}
