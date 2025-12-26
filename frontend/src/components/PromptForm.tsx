@@ -7,10 +7,11 @@ interface PromptFormProps {
 
 export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
   const [prompt, setPrompt] = useState('');
-  const [image, setImage] = useState<string | null>(null);
-  const [imageFileName, setImageFileName] = useState<string>('');
+  const [file, setFile] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>('');
+  const [fileType, setFileType] = useState<string>('');
 
-  // Define which models support vision/images
+  // Define which models support vision/document analysis
   const VISION_ENABLED_MODELS = new Set([
     'gpt5_low',
     'gpt5_high',
@@ -49,13 +50,13 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
 
   const evalCount = useMemo(() => generators.length * judges.length, [generators.length, judges.length]);
 
-  // Filter models based on vision support if image is uploaded
+  // Filter models based on vision support if file is uploaded
   const availableModels = useMemo(() => {
-    if (image) {
+    if (file) {
       return MODELS.filter(m => VISION_ENABLED_MODELS.has(m.id));
     }
     return MODELS;
-  }, [image]);
+  }, [file]);
 
   const toggle = (list: string[], setter: (v: string[]) => void, id: string) => {
     setter(list.includes(id) ? list.filter(x => x !== id) : [...list, id]);
@@ -64,45 +65,54 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
   const selectAll = (setter: (v: string[]) => void) => setter(availableModels.map(m => m.id));
   const selectNone = (setter: (v: string[]) => void) => setter([]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = e.target.files?.[0];
+    if (!uploadedFile) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+    // Supported file types: images and PDFs
+    const supportedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf'
+    ];
+
+    if (!supportedTypes.includes(uploadedFile.type)) {
+      alert('Please upload an image (JPEG, PNG, GIF, WebP) or PDF file');
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB');
+    // Validate file size (max 10MB for PDFs, 5MB for images)
+    const maxSize = uploadedFile.type === 'application/pdf' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (uploadedFile.size > maxSize) {
+      const maxSizeMB = uploadedFile.type === 'application/pdf' ? '10MB' : '5MB';
+      alert(`File size must be less than ${maxSizeMB}`);
       return;
     }
 
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
-      setImage(base64String);
-      setImageFileName(file.name);
+      setFile(base64String);
+      setFileName(uploadedFile.name);
+      setFileType(uploadedFile.type);
 
       // Remove non-vision models from selected generators and judges
       setGenerators(prev => prev.filter(id => VISION_ENABLED_MODELS.has(id)));
       setJudges(prev => prev.filter(id => VISION_ENABLED_MODELS.has(id)));
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(uploadedFile);
   };
 
-  const handleRemoveImage = () => {
-    setImage(null);
-    setImageFileName('');
+  const handleRemoveFile = () => {
+    setFile(null);
+    setFileName('');
+    setFileType('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
     if (generators.length === 0 || judges.length === 0) return;
-    onSubmit({ prompt, generators, judges, image: image || undefined });
+    onSubmit({ prompt, generators, judges, image: file || undefined });
   };
 
   return (
@@ -128,48 +138,62 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
           </div>
         </div>
 
-        {/* Image Upload Section */}
+        {/* File Upload Section */}
         <div>
           <label className="block text-lg font-medium text-base-content mb-2">
-            Upload an image (optional)
+            Upload a file (optional)
           </label>
           <div className="flex items-center gap-4">
             <input
               type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
+              accept="image/*,.pdf"
+              onChange={handleFileUpload}
               disabled={isLoading}
               className="file-input file-input-bordered file-input-primary w-full max-w-xs"
             />
-            {image && (
+            {file && (
               <button
                 type="button"
-                onClick={handleRemoveImage}
+                onClick={handleRemoveFile}
                 disabled={isLoading}
                 className="btn btn-error btn-sm"
               >
-                Remove Image
+                Remove File
               </button>
             )}
           </div>
-          {image && (
+          {file && (
             <div className="mt-4">
               <div className="relative inline-block">
-                <img
-                  src={image}
-                  alt="Uploaded preview"
-                  className="max-w-xs max-h-48 rounded-lg border-2 border-base-300"
-                />
-                <div className="mt-2 text-sm text-base-content/60">
-                  {imageFileName}
-                </div>
+                {fileType.startsWith('image/') ? (
+                  <img
+                    src={file}
+                    alt="Uploaded preview"
+                    className="max-w-xs max-h-48 rounded-lg border-2 border-base-300"
+                  />
+                ) : (
+                  <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg border-2 border-base-300">
+                    <svg className="w-12 h-12 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <div className="font-medium text-base-content">PDF Document</div>
+                      <div className="text-sm text-base-content/60">{fileName}</div>
+                    </div>
+                  </div>
+                )}
+                {fileType.startsWith('image/') && (
+                  <div className="mt-2 text-sm text-base-content/60">
+                    {fileName}
+                  </div>
+                )}
               </div>
             </div>
           )}
-          {image && (
+          {file && (
             <div className="mt-2 p-3 bg-info/10 border border-info/30 rounded-lg">
               <p className="text-sm text-base-content">
-                <strong>Note:</strong> Only vision-enabled models (GPT-5, Claude 4.5, Gemini 2.5, Grok 4) will be available when an image is uploaded.
+                <strong>Note:</strong> Only vision-enabled models (GPT-5, Claude 4.5, Gemini 2.5, Grok 4) can process files. Other models will be disabled.
               </p>
             </div>
           )}
@@ -187,7 +211,7 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
             </div>
             <ul className="divide-y divide-base-300">
               {SORTED_MODELS.map(m => {
-                const isDisabled = image && !VISION_ENABLED_MODELS.has(m.id);
+                const isDisabled = file && !VISION_ENABLED_MODELS.has(m.id);
                 return (
                   <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${generators.includes(m.id) ? 'bg-primary/10' : ''} ${isDisabled ? 'opacity-50' : ''}`}>
                     <label className={`flex items-center gap-2 w-full ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -201,7 +225,7 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
                       />
                       <span className="text-sm text-base-content truncate">
                         {m.label}
-                        {isDisabled && <span className="ml-2 text-xs text-error">(No vision support)</span>}
+                        {isDisabled && <span className="ml-2 text-xs text-error">(No file support)</span>}
                       </span>
                     </label>
                     <span className="ml-3 text-sm tabular-nums text-base-content/80">{getDollarSigns(MODEL_COST[m.id])}</span>
@@ -222,7 +246,7 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
             </div>
             <ul className="divide-y divide-base-300">
               {SORTED_MODELS.map(m => {
-                const isDisabled = image && !VISION_ENABLED_MODELS.has(m.id);
+                const isDisabled = file && !VISION_ENABLED_MODELS.has(m.id);
                 return (
                   <li key={m.id} className={`flex items-center justify-between py-2 px-2 rounded-md ${judges.includes(m.id) ? 'bg-secondary/10' : ''} ${isDisabled ? 'opacity-50' : ''}`}>
                     <label className={`flex items-center gap-2 w-full ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -236,7 +260,7 @@ export default function PromptForm({ onSubmit, isLoading }: PromptFormProps) {
                       />
                       <span className="text-sm text-base-content truncate">
                         {m.label}
-                        {isDisabled && <span className="ml-2 text-xs text-error">(No vision support)</span>}
+                        {isDisabled && <span className="ml-2 text-xs text-error">(No file support)</span>}
                       </span>
                     </label>
                     <span className="ml-3 text-sm tabular-nums text-base-content/80">{getDollarSigns(MODEL_COST[m.id])}</span>
