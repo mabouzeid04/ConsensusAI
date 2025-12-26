@@ -21,7 +21,7 @@ export function getClientId(): string {
   return id;
 }
 
-export async function submitPrompt(payload: { prompt: string; generators: string[] }) {
+export async function submitPrompt(payload: { prompt: string; generators: string[]; image?: string }) {
   const response = await fetch(`${API_BASE_URL}/prompt/submit`, {
     method: 'POST',
     credentials: 'include',
@@ -39,7 +39,7 @@ export async function submitPrompt(payload: { prompt: string; generators: string
   return response.json();
 }
 
-export async function evaluateResponses(params: { prompt: string; shuffledResponses: any[]; originalMapping: any[]; judges: string[] }) {
+export async function evaluateResponses(params: { prompt: string; shuffledResponses: any[]; originalMapping: any[]; judges: string[]; image?: string }) {
   const response = await fetch(`${API_BASE_URL}/prompt/evaluate`, {
     method: 'POST',
     credentials: 'include',
