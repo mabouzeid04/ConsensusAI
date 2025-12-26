@@ -37,23 +37,24 @@ export default function Home() {
   const [originalMapping, setOriginalMapping] = useState<ModelResponse[]>([]);
   const [comparisonId, setComparisonId] = useState<string | null>(null);
 
-  const handlePromptSubmit = async ({ prompt, generators, judges }: { prompt: string; generators: string[]; judges: string[] }) => {
+  const handlePromptSubmit = async ({ prompt, generators, judges, image }: { prompt: string; generators: string[]; judges: string[]; image?: string }) => {
     setIsLoading(true);
     setPromptText(prompt);
     setStep('evaluating');
-    
+
     try {
-      const data = await submitPrompt({ prompt, generators });
+      const data = await submitPrompt({ prompt, generators, image });
       setShuffledResponses(data.shuffledResponses);
       setOriginalMapping(data.originalMapping);
-      
+
       const evaluationData = await evaluateResponses({
         prompt,
         shuffledResponses: data.shuffledResponses,
         originalMapping: data.originalMapping,
         judges,
+        image,
       });
-      
+
       setResults(evaluationData);
       if (evaluationData?.comparisonId) {
         setComparisonId(evaluationData.comparisonId);

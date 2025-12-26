@@ -89,8 +89,8 @@ type ModelId = keyof typeof MODEL_REGISTRY;
 
 export const getModelResponses = async (req: Request, res: Response) => {
   try {
-    const { prompt, generators } = req.body as { prompt: string; generators?: ModelId[] };
-    
+    const { prompt, generators, image } = req.body as { prompt: string; generators?: ModelId[]; image?: string };
+
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
@@ -99,7 +99,7 @@ export const getModelResponses = async (req: Request, res: Response) => {
 
     const settled = await Promise.allSettled(
       chosen.map(async (id) => {
-        const response = await MODEL_REGISTRY[id].respond(prompt);
+        const response = await MODEL_REGISTRY[id].respond(prompt, image);
         return { id, model: MODEL_REGISTRY[id].label, response } as ModelResponse;
       })
     );
@@ -120,12 +120,12 @@ export const getModelResponses = async (req: Request, res: Response) => {
 
     // Shuffle responses and assign labels
     const shuffledResponses = shuffleAndLabelResponses([...modelResponses]);
-    
+
     // Store the original model-response mapping in session or temporary storage
     // For simplicity, we'll return it to the frontend to be sent back
     // In a production app, this should be stored securely on the backend
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       shuffledResponses,
       originalMapping: modelResponses
     });
@@ -137,8 +137,8 @@ export const getModelResponses = async (req: Request, res: Response) => {
 
 export const evaluateResponses = async (req: Request, res: Response) => {
   try {
-    const { prompt, shuffledResponses, originalMapping, judges } = req.body as { prompt: string; shuffledResponses: ModelResponse[]; originalMapping: ModelResponse[]; judges?: ModelId[] };
-    
+    const { prompt, shuffledResponses, originalMapping, judges, image } = req.body as { prompt: string; shuffledResponses: ModelResponse[]; originalMapping: ModelResponse[]; judges?: ModelId[]; image?: string };
+
     if (!prompt || !shuffledResponses || !originalMapping) {
       return res.status(400).json({ error: 'Prompt, shuffled responses, and original mapping are required' });
     }
@@ -147,7 +147,7 @@ export const evaluateResponses = async (req: Request, res: Response) => {
     const respondersPresent = (originalMapping as ModelResponse[]).map(m => m.id).filter(Boolean) as ModelId[];
     const chosenJudges: ModelId[] = (judges && judges.length ? judges : respondersPresent);
 
-    const evaluationPromises = chosenJudges.map(id => evaluateResponsesWithModelId(id, prompt, shuffledResponses));
+    const evaluationPromises = chosenJudges.map(id => evaluateResponsesWithModelId(id, prompt, shuffledResponses, image));
     const allEvaluationsResults = await Promise.allSettled(evaluationPromises);
 
     const evaluationsByModel: Array<Array<{ score: number, explanation: string }>> = allEvaluationsResults.map((result, i) => {
@@ -234,11 +234,12 @@ function shuffleAndLabelResponses(responses: ModelResponse[]): ModelResponse[] {
 async function evaluateResponsesWithModelId(
   id: ModelId,
   prompt: string,
-  responses: ModelResponse[]
+  responses: ModelResponse[],
+  image?: string
 ): Promise<Array<{ score: number, explanation: string }>> {
   const evaluationFunction = MODEL_REGISTRY[id].evaluate;
   try {
-    return await evaluationFunction(prompt, responses);
+    return await evaluationFunction(prompt, responses, image);
   } catch (error) {
     console.error(`Error during evaluation with ${MODEL_REGISTRY[id].label}:`, error);
     return responses.map(() => ({

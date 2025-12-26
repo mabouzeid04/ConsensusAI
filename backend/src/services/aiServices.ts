@@ -99,19 +99,44 @@ const ANTHROPIC_SONNET_45_MODEL = process.env.ANTHROPIC_SONNET_45_MODEL || 'clau
 const DEEPSEEK_V3_MODEL = process.env.DEEPSEEK_V3_MODEL || 'DeepSeek-V3.2-Exp';
 const GROK_4_MODEL = process.env.GROK_4_MODEL || 'grok-4';
 
+// Helper function to convert base64 data URL to URL object for OpenAI
+function base64ToImageUrl(base64: string): { type: 'input_image'; url: string } {
+  return { type: 'input_image', url: base64 };
+}
+
+// Helper function to convert base64 data URL to buffer and media type
+function parseBase64Image(base64: string): { data: string; media_type: string } {
+  // Extract media type and base64 data from data URL
+  const matches = base64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error('Invalid base64 image format');
+  }
+  return {
+    media_type: matches[1],
+    data: matches[2]
+  };
+}
+
 // -----------------
 // OpenAI (GPT-5)
 // -----------------
-export async function fetchGpt5LowResponse(prompt: string): Promise<string> {
+export async function fetchGpt5LowResponse(prompt: string, image?: string): Promise<string> {
   try {
+    const content: any[] = [{ type: 'input_text', text: prompt }];
+
+    // Add image if provided
+    if (image) {
+      content.push(base64ToImageUrl(image));
+    }
+
     const response = await openai.responses.create({
       model: OPENAI_GPT5_LOW_MODEL,
       input: [
-        { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+        { role: 'user', content }
       ],
       max_output_tokens: 4096,
     } as any);
-    
+
     const text = (response as any).output_text || '';
     return text;
   } catch (error) {
@@ -125,16 +150,23 @@ export async function fetchGpt5LowResponse(prompt: string): Promise<string> {
   }
 }
 
-export async function fetchGpt5HighResponse(prompt: string): Promise<string> {
+export async function fetchGpt5HighResponse(prompt: string, image?: string): Promise<string> {
   try {
+    const content: any[] = [{ type: 'input_text', text: prompt }];
+
+    // Add image if provided
+    if (image) {
+      content.push(base64ToImageUrl(image));
+    }
+
     const response = await openai.responses.create({
       model: OPENAI_GPT5_HIGH_MODEL,
       input: [
-        { role: 'user', content: [{ type: 'input_text', text: prompt }] }
+        { role: 'user', content }
       ],
       max_output_tokens: 4096,
     } as any);
-    
+
     const text = (response as any).output_text || '';
     return text;
   } catch (error) {
@@ -149,15 +181,37 @@ export async function fetchGpt5HighResponse(prompt: string): Promise<string> {
 }
 
 
-export async function fetchClaudeSonnetResponse(prompt: string): Promise<string> {
+export async function fetchClaudeSonnetResponse(prompt: string, image?: string): Promise<string> {
   try {
+    let content: any;
+
+    if (image) {
+      const { media_type, data } = parseBase64Image(image);
+      content = [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type,
+            data
+          }
+        },
+        {
+          type: 'text',
+          text: prompt
+        }
+      ];
+    } else {
+      content = prompt;
+    }
+
     const apiResponse = await http.post<AnthropicResponse>(
       'https://api.anthropic.com/v1/messages',
       {
         model: ANTHROPIC_SONNET_45_MODEL,
         max_tokens: 4096,
         messages: [
-          { role: 'user', content: prompt }
+          { role: 'user', content }
         ],
         temperature: 0.7
       },
@@ -176,15 +230,37 @@ export async function fetchClaudeSonnetResponse(prompt: string): Promise<string>
   }
 }
 
-export async function fetchClaude45SonnetResponse(prompt: string): Promise<string> {
+export async function fetchClaude45SonnetResponse(prompt: string, image?: string): Promise<string> {
   try {
+    let content: any;
+
+    if (image) {
+      const { media_type, data } = parseBase64Image(image);
+      content = [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type,
+            data
+          }
+        },
+        {
+          type: 'text',
+          text: prompt
+        }
+      ];
+    } else {
+      content = prompt;
+    }
+
     const apiResponse = await http.post<AnthropicResponse>(
       'https://api.anthropic.com/v1/messages',
       {
         model: ANTHROPIC_SONNET_45_MODEL,
         max_tokens: 4096,
         messages: [
-          { role: 'user', content: prompt }
+          { role: 'user', content }
         ],
         temperature: 0.7
       },
@@ -203,8 +279,9 @@ export async function fetchClaude45SonnetResponse(prompt: string): Promise<strin
   }
 }
 
-export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
+export async function fetchDeepSeekR1Response(prompt: string, image?: string): Promise<string> {
   try {
+    // DeepSeek does not support vision - ignore image parameter
     const response = await http.post<any>(
       'https://api.deepseek.com/chat/completions',
       {
@@ -231,8 +308,9 @@ export async function fetchDeepSeekR1Response(prompt: string): Promise<string> {
   }
 }
 
-export async function fetchDeepSeekV3Response(prompt: string): Promise<string> {
+export async function fetchDeepSeekV3Response(prompt: string, image?: string): Promise<string> {
   try {
+    // DeepSeek does not support vision - ignore image parameter
     const response = await http.post<DeepSeekResponse>(
       'https://api.deepseek.com/chat/completions',
       {
@@ -257,27 +335,69 @@ export async function fetchDeepSeekV3Response(prompt: string): Promise<string> {
   }
 }
 
-export async function fetchGemini2Response(prompt: string): Promise<string> {
+export async function fetchGemini2Response(prompt: string, image?: string): Promise<string> {
   try {
+    let contents: any;
+
+    if (image) {
+      const { media_type, data } = parseBase64Image(image);
+      contents = [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: media_type,
+                data
+              }
+            },
+            { text: prompt }
+          ]
+        }
+      ];
+    } else {
+      contents = prompt;
+    }
+
     const response = await googleAI.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt
+      contents
     });
-    
-    return response.text || ''; 
-  } catch (error) { 
-    console.error('Error fetching Gemini 2.5 Flash response:', error); 
-    throw error; 
+
+    return response.text || '';
+  } catch (error) {
+    console.error('Error fetching Gemini 2.5 Flash response:', error);
+    throw error;
   }
 }
 
-export async function fetchGemini25ProResponse(prompt: string): Promise<string> {
+export async function fetchGemini25ProResponse(prompt: string, image?: string): Promise<string> {
   try {
+    let contents: any;
+
+    if (image) {
+      const { media_type, data } = parseBase64Image(image);
+      contents = [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: media_type,
+                data
+              }
+            },
+            { text: prompt }
+          ]
+        }
+      ];
+    } else {
+      contents = prompt;
+    }
+
     const response = await googleAI.models.generateContent({
       model: 'gemini-2.5-pro',
-      contents: prompt
+      contents
     });
-    
+
     return response.text || '';
   } catch (error) {
     console.error('Error fetching Gemini 2.5 Pro response:', error);
@@ -288,16 +408,28 @@ export async function fetchGemini25ProResponse(prompt: string): Promise<string> 
 // -----------------
 // xAI Grok 4
 // -----------------
-export async function fetchGrok4Response(prompt: string): Promise<string> {
+export async function fetchGrok4Response(prompt: string, image?: string): Promise<string> {
   try {
     const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+
+    let userContent: any;
+    if (image) {
+      // Grok uses OpenAI-compatible format for vision
+      userContent = [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: image } }
+      ];
+    } else {
+      userContent = prompt;
+    }
+
     const response = await http.post<OpenAIResponse>(
       'https://api.x.ai/v1/chat/completions',
       {
         model: GROK_4_MODEL,
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
-          { role: 'user', content: prompt }
+          { role: 'user', content: userContent }
         ],
         temperature: 0.7,
         max_tokens: 4096,
@@ -318,21 +450,28 @@ export async function fetchGrok4Response(prompt: string): Promise<string> {
 
 // Evaluation functions
 
-export async function fetchGpt5LowEvaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchGpt5LowEvaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const responseItem of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, responseItem.label || '', responseItem.response);
+      const content: any[] = [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }];
+
+      // Add image if provided (for context in evaluation)
+      if (image) {
+        content.push(base64ToImageUrl(image));
+      }
+
       const apiResponse = await openai.responses.create({
         model: OPENAI_GPT5_LOW_MODEL,
         input: [
-          { role: 'user', content: [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }] }
+          { role: 'user', content }
         ],
         max_output_tokens: 4096,
       } as any);
-      
-      const content = (apiResponse as any).output_text || '';
-      evaluations.push(parseEvaluation(content));
+
+      const text = (apiResponse as any).output_text || '';
+      evaluations.push(parseEvaluation(text));
     }
     return evaluations;
   } catch (error) {
@@ -346,21 +485,28 @@ export async function fetchGpt5LowEvaluation(prompt: string, responses: ModelRes
   }
 }
 
-export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const responseItem of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, responseItem.label || '', responseItem.response);
+      const content: any[] = [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }];
+
+      // Add image if provided (for context in evaluation)
+      if (image) {
+        content.push(base64ToImageUrl(image));
+      }
+
       const apiResponse = await openai.responses.create({
         model: OPENAI_GPT5_HIGH_MODEL,
         input: [
-          { role: 'user', content: [{ type: 'input_text', text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }] }
+          { role: 'user', content }
         ],
         max_output_tokens: 4096,
       } as any);
-      
-      const content = (apiResponse as any).output_text || '';
-      evaluations.push(parseEvaluation(content));
+
+      const text = (apiResponse as any).output_text || '';
+      evaluations.push(parseEvaluation(text));
     }
     return evaluations;
   } catch (error) {
@@ -374,18 +520,40 @@ export async function fetchGpt5HighEvaluation(prompt: string, responses: ModelRe
   }
 }
 
-export async function fetchClaudeSonnetEvaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchClaudeSonnetEvaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
+      let content: any;
+
+      if (image) {
+        const { media_type, data } = parseBase64Image(image);
+        content = [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type,
+              data
+            }
+          },
+          {
+            type: 'text',
+            text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
+          }
+        ];
+      } else {
+        content = `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`;
+      }
+
       const apiResponse = await http.post<AnthropicResponse>(
         'https://api.anthropic.com/v1/messages',
         {
           model: ANTHROPIC_SONNET_45_MODEL,
           max_tokens: 4096,
           messages: [
-            { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
+            { role: 'user', content }
           ]
         },
         {
@@ -396,8 +564,8 @@ export async function fetchClaudeSonnetEvaluation(prompt: string, responses: Mod
           }
         }
       );
-      const content = apiResponse.data.content[0].text;
-      const evaluation = parseEvaluation(content);
+      const text = apiResponse.data.content[0].text;
+      const evaluation = parseEvaluation(text);
       evaluations.push(evaluation);
     }
     return evaluations;
@@ -407,18 +575,40 @@ export async function fetchClaudeSonnetEvaluation(prompt: string, responses: Mod
   }
 }
 
-export async function fetchClaude45SonnetEvaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchClaude45SonnetEvaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
+      let content: any;
+
+      if (image) {
+        const { media_type, data } = parseBase64Image(image);
+        content = [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type,
+              data
+            }
+          },
+          {
+            type: 'text',
+            text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
+          }
+        ];
+      } else {
+        content = `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`;
+      }
+
       const apiResponse = await http.post<AnthropicResponse>(
         'https://api.anthropic.com/v1/messages',
         {
           model: ANTHROPIC_SONNET_45_MODEL,
           max_tokens: 4096,
           messages: [
-            { role: 'user', content: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
+            { role: 'user', content }
           ]
         },
         {
@@ -429,8 +619,8 @@ export async function fetchClaude45SonnetEvaluation(prompt: string, responses: M
           }
         }
       );
-      const content = apiResponse.data.content[0].text;
-      evaluations.push(parseEvaluation(content));
+      const text = apiResponse.data.content[0].text;
+      evaluations.push(parseEvaluation(text));
     }
     return evaluations;
   } catch (error) {
@@ -439,13 +629,14 @@ export async function fetchClaude45SonnetEvaluation(prompt: string, responses: M
   }
 }
 
-export async function fetchDeepSeekR1Evaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchDeepSeekR1Evaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
+    // DeepSeek does not support vision - ignore image parameter
     const evaluations = [];
-    
+
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-      
+
       const apiResponse = await http.post<any>(
         'https://api.deepseek.com/chat/completions',
         {
@@ -463,12 +654,12 @@ export async function fetchDeepSeekR1Evaluation(prompt: string, responses: Model
           }
         }
       );
-      
+
       const content = apiResponse.data.choices[0].message.content;
       const evaluation = parseEvaluation(content);
       evaluations.push(evaluation);
     }
-    
+
     return evaluations;
   } catch (error) {
     console.error('Error evaluating with DeepSeek R1:', error);
@@ -476,8 +667,9 @@ export async function fetchDeepSeekR1Evaluation(prompt: string, responses: Model
   }
 }
 
-export async function fetchDeepSeekV3Evaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchDeepSeekV3Evaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
+    // DeepSeek does not support vision - ignore image parameter
     const evaluations: Array<{ score: number, explanation: string }> = [];
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
@@ -509,23 +701,43 @@ export async function fetchDeepSeekV3Evaluation(prompt: string, responses: Model
   }
 }
 
-export async function fetchGemini2Evaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchGemini2Evaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations = [];
-    
+
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-      
+      let contents: any;
+
+      if (image) {
+        const { media_type, data } = parseBase64Image(image);
+        contents = [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: media_type,
+                  data
+                }
+              },
+              { text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
+            ]
+          }
+        ];
+      } else {
+        contents = `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`;
+      }
+
       const apiResponse = await googleAI.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
+        contents
       });
-      
+
       const content = apiResponse.text || '';
       const evaluation = parseEvaluation(content);
       evaluations.push(evaluation);
     }
-    
+
     return evaluations;
   } catch (error) {
     console.error('Error evaluating with Gemini 2.5 Flash:', error);
@@ -533,23 +745,43 @@ export async function fetchGemini2Evaluation(prompt: string, responses: ModelRes
   }
 }
 
-export async function fetchGemini25ProEvaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchGemini25ProEvaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations = [];
-    
+
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
-      
+      let contents: any;
+
+      if (image) {
+        const { media_type, data } = parseBase64Image(image);
+        contents = [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: media_type,
+                  data
+                }
+              },
+              { text: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}` }
+            ]
+          }
+        ];
+      } else {
+        contents = `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`;
+      }
+
       const apiResponse = await googleAI.models.generateContent({
         model: 'gemini-2.5-pro',
-        contents: `You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.\n\n${evaluationPrompt}`
+        contents
       });
-      
+
       const content = apiResponse.text || '';
       const evaluation = parseEvaluation(content);
       evaluations.push(evaluation);
     }
-    
+
     return evaluations;
   } catch (error) {
     console.error('Error evaluating with Gemini 2.5 Pro:', error);
@@ -557,19 +789,31 @@ export async function fetchGemini25ProEvaluation(prompt: string, responses: Mode
   }
 }
 
-export async function fetchGrok4Evaluation(prompt: string, responses: ModelResponse[]): Promise<Array<{ score: number, explanation: string }>> {
+export async function fetchGrok4Evaluation(prompt: string, responses: ModelResponse[], image?: string): Promise<Array<{ score: number, explanation: string }>> {
   try {
     const evaluations: Array<{ score: number, explanation: string }> = [];
     const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     for (const response of responses) {
       const evaluationPrompt = createEvaluationPrompt(prompt, response.label || '', response.response);
+
+      let userContent: any;
+      if (image) {
+        // Grok uses OpenAI-compatible format for vision
+        userContent = [
+          { type: 'text', text: evaluationPrompt },
+          { type: 'image_url', image_url: { url: image } }
+        ];
+      } else {
+        userContent = evaluationPrompt;
+      }
+
       const apiResponse = await http.post<OpenAIResponse>(
         'https://api.x.ai/v1/chat/completions',
         {
           model: GROK_4_MODEL,
           messages: [
             { role: 'system', content: 'You are evaluating AI responses to a prompt. Rate each response on a scale of 1-10 and explain your reasoning.' },
-            { role: 'user', content: evaluationPrompt }
+            { role: 'user', content: userContent }
           ],
           temperature: 0.3,
           max_tokens: 4096,
