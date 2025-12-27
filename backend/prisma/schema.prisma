@@ -17,6 +17,7 @@ model Comparison {
   userId     String?
   user       User?    @relation(fields: [userId], references: [id])
   prompt     String
+  title      String?
   generators Json
   judges     Json
   data       Json

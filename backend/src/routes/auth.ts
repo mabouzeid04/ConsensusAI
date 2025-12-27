@@ -8,26 +8,41 @@ import { optionalAuth } from '../middleware/auth';
 import { attachGuestHistoryToUser } from '../services/historyService';
 
 const prisma = new PrismaClient();
+export let googleEnabled = false;
 const router = express.Router();
 
 export function configureGoogleStrategy() {
   const clientID = process.env.GOOGLE_CLIENT_ID || '';
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
-  const callbackURL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
-  if (!clientID || !clientSecret) return;
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL || `http://localhost:${process.env.PORT || 5000}/api/auth/google/callback`;
+  if (!clientID || !clientSecret) {
+    googleEnabled = false;
+    return;
+  }
   passport.use(new GoogleStrategy({ clientID, clientSecret, callbackURL }, async (_accessToken: string, _refreshToken: string, profile: any, done: (err: any, user?: any) => void) => {
     try {
       const email = profile.emails?.[0]?.value?.toLowerCase();
       if (!email) return done(null, false);
       let user = await prisma.user.findUnique({ where: { email } });
+      const photoUrl = profile.photos?.[0]?.value || null;
+      const displayName = profile.displayName || null;
       if (!user) {
-        user = await prisma.user.create({ data: { email, name: profile.displayName || null, imageUrl: profile.photos?.[0]?.value || null } });
+        user = await prisma.user.create({ data: { email, name: displayName, imageUrl: photoUrl } });
+      } else {
+        // Backfill or refresh profile fields
+        const updates: { name?: string | null; imageUrl?: string | null } = {};
+        if (!user.name && displayName) updates.name = displayName;
+        if (photoUrl && user.imageUrl !== photoUrl) updates.imageUrl = photoUrl;
+        if (Object.keys(updates).length > 0) {
+          user = await prisma.user.update({ where: { id: user.id }, data: updates });
+        }
       }
       return done(null, { id: user.id, email: user.email });
     } catch (e) {
       return done(e as any);
     }
   }));
+  googleEnabled = true;
 }
 
 router.get('/me', optionalAuth, async (req, res) => {
@@ -86,6 +101,15 @@ router.post('/logout', (_req, res) => {
 });
 
 router.get('/google', (req, res, next) => {
+  if (!googleEnabled) {
+    const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:3000';
+    return res.status(501).json({
+      error: 'Google OAuth not configured',
+      hint: 'Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL',
+      expectedCallback: process.env.GOOGLE_CALLBACK_URL || `http://localhost:${process.env.PORT || 5000}/api/auth/google/callback`,
+      redirect: `${frontendUrl}/login`
+    });
+  }
   const clientId = (req.query.clientId as string) || undefined;
   return (passport.authenticate('google', { scope: ['profile', 'email'], state: clientId }))(req, res, next);
 });

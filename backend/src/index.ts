@@ -7,7 +7,7 @@ import passport from 'passport';
 import { promptRouter } from './routes/prompt';
 import { historyRouter } from './routes/history';
 import { authRouter, configureGoogleStrategy } from './routes/auth';
-import { billingRouter } from './routes/billing';
+import { billingRouter, billingWebhookHandler } from './routes/billing';
 
 dotenv.config();
 
@@ -17,6 +17,8 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
 app.use(cors({ origin: corsOrigin, credentials: true }));
+// Stripe webhook must receive the raw body; mount BEFORE express.json()
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), billingWebhookHandler);
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(cookieParser());

@@ -168,3 +168,14 @@ export async function getUsage(limit = 50, cursor?: string) {
   if (!res.ok) throw new Error('Failed to fetch usage');
   return res.json();
 }
+
+export async function startTopupCheckout(amountCents: number) {
+  const res = await fetch(`${API_BASE_URL}/billing/checkout`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amountCents }),
+  });
+  if (!res.ok) throw new Error('Failed to start checkout');
+  return res.json() as Promise<{ url: string }>; 
+}

@@ -4,47 +4,36 @@
 
 @layer base {
   body {
-    @apply antialiased;
-    color: oklch(var(--bc));
-    background-color: oklch(var(--b1));
+    @apply antialiased text-base-content bg-base-100 transition-colors duration-300;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
   }
 }
 
-@layer components {
-  .prose {
-    @apply max-w-none;
-    color: oklch(var(--bc));
-  }
-  
-  .prose pre {
-    @apply rounded-xl shadow-lg;
-    background-color: oklch(var(--n));
-    color: oklch(var(--nc));
-  }
-  
-  .prose code {
-    @apply px-1.5 py-0.5 rounded;
-    color: oklch(var(--p));
-    background-color: oklch(var(--p) / 0.1);
-  }
-  
-  .prose pre code {
-    @apply p-0;
-    color: oklch(var(--nc));
-    background-color: transparent;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 8s linear infinite;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-@keyframes gradient {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-} 
+::-webkit-scrollbar-thumb {
+  @apply rounded-full border-2 border-background;
+  background-color: hsl(var(--b2) / 1);
+  /* surface */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--p) / 0.5);
+  /* primary/50 */
+}

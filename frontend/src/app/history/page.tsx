@@ -7,6 +7,7 @@ import { getHistory } from '../../services/api';
 interface HistoryItemSummary {
   id: string;
   prompt: string;
+  title?: string | null;
   createdAt: string;
   summary: {
     numResponses: number;
@@ -73,8 +74,8 @@ export default function HistoryPage() {
                       <span>Best avg: {item.summary.bestAverage.toFixed(1)}</span>
                     </div>
                   </div>
-                  <div className="text-base-content line-clamp-2" title={item.prompt}>
-                    {item.prompt.length > 160 ? `${item.prompt.slice(0, 160)}…` : item.prompt}
+                  <div className="text-base-content line-clamp-2" title={item.title || item.prompt}>
+                    {item.title || (item.prompt.length > 160 ? `${item.prompt.slice(0, 160)}…` : item.prompt)}
                   </div>
                 </div>
               </Link>

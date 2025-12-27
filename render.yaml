@@ -1,0 +1,75 @@
+services:
+  # Backend API (Express + Prisma SQLite on persistent disk)
+  - type: web
+    name: consensusai-backend
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: backend
+    buildCommand: |
+      npm ci
+      npx prisma generate
+      npm run build
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /api/auth/me
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5051
+      - key: DATABASE_URL
+        value: file:/var/data/dev.db
+      - key: CORS_ORIGIN
+        # Update to your frontend URL once domain is set (e.g., https://example.com)
+        value: https://example.com
+      - key: FRONTEND_URL
+        # Used for Stripe checkout success/cancel URLs
+        value: https://example.com
+      - key: COOKIE_DOMAIN
+        # Optional: set to your apex domain (e.g., example.com) to share cookies across subdomains
+        value: example.com
+      - key: JWT_SECRET
+        generateValue: true
+      # Stripe (optional) — set if you enable billing
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # Google OAuth (optional)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        # Example: https://api.example.com/api/auth/google/callback
+        value: https://api.example.com/api/auth/google/callback
+    postDeployCommand: |
+      npx prisma migrate deploy
+
+  # Frontend (Next.js SSR)
+  - type: web
+    name: consensusai-frontend
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: frontend
+    buildCommand: |
+      npm ci
+      npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        # Point this to your backend custom domain once set
+        value: https://api.example.com/api
+
+

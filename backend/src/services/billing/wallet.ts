@@ -2,22 +2,24 @@ import { PrismaClient } from '../../generated/prisma/client';
 
 const prisma = new PrismaClient();
 
+const STARTING_BALANCE_CENTS = 1000; // $10.00
+
 export async function ensureWallet(userId: string) {
   const existing = await prisma.wallet.findUnique({ where: { userId } });
   if (existing) return existing;
-  return prisma.wallet.create({ data: { userId, balanceCents: 0 } });
+  return prisma.wallet.create({ data: { userId, balanceCents: STARTING_BALANCE_CENTS } });
 }
 
 export async function getBalance(userId: string): Promise<number> {
-  const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  return wallet?.balanceCents ?? 0;
+  const wallet = await ensureWallet(userId);
+  return wallet.balanceCents;
 }
 
 export async function credit(userId: string, amountCents: number) {
   if (amountCents <= 0) return await ensureWallet(userId);
   return prisma.wallet.upsert({
     where: { userId },
-    create: { userId, balanceCents: amountCents },
+    create: { userId, balanceCents: STARTING_BALANCE_CENTS + amountCents },
     update: { balanceCents: { increment: amountCents } },
   });
 }
@@ -33,7 +35,7 @@ export async function debitForUsageTx(userId: string, amountCents: number, reque
 
     const wallet = await tx.wallet.upsert({
       where: { userId },
-      create: { userId, balanceCents: 0 },
+      create: { userId, balanceCents: STARTING_BALANCE_CENTS },
       update: {},
     });
     if (wallet.balanceCents < amountCents) {

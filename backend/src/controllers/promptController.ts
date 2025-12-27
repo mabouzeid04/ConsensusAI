@@ -32,6 +32,7 @@ import { estimateWorstCaseTokens } from '../services/billing/tokenize';
 import { calculateCostCents, getPricing } from '../services/billing/pricing';
 import { debitForUsageTx, getBalance } from '../services/billing/wallet';
 import { recordUsage } from '../services/billing/usage';
+import { generateTitleFromPrompt, fallbackTitleFromPrompt } from '../services/title';
 
 // Type definitions
 interface ModelResponse {
@@ -274,10 +275,14 @@ export const evaluateResponses = async (req: Request, res: Response) => {
     let comparisonId: string | undefined = undefined;
     if (clientId) {
       try {
+        // Generate a title with fallback to prompt snippet
+        const generatedTitle = await generateTitleFromPrompt(prompt);
+        const safeTitle = generatedTitle || fallbackTitleFromPrompt(prompt, 10);
         const created = await createComparison({
           clientId,
           userId: payload?.userId || null,
           prompt,
+          title: safeTitle,
           generators: (originalMapping as ModelResponse[]).map(m => m.id as string).filter(Boolean),
           judges: (chosenJudges as string[]),
           data: { prompt, responsesWithEvaluations },

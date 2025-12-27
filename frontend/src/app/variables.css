@@ -1,0 +1,21 @@
+:root {
+    --background: 248 250 252;
+    --surface: 255 255 255;
+    --primary: 139 92 246;
+    --secondary: 6 182 212;
+    --accent: 244 63 94;
+    --content-primary: 15 23 42;
+    --content-secondary: 71 85 105;
+    --border: 226 232 240;
+}
+
+[data-theme='dark'] {
+    --background: 15 23 42;
+    --surface: 30 41 59;
+    --primary: 139 92 246;
+    --secondary: 6 182 212;
+    --accent: 244 63 94;
+    --content-primary: 248 250 252;
+    --content-secondary: 148 163 184;
+    --border: 255 255 255;
+}

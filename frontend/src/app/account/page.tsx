@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { getMe, SessionUser, getWallet, creditWallet, getUsage } from '../../services/api';
+import { getMe, SessionUser, getWallet, creditWallet, getUsage, startTopupCheckout } from '../../services/api';
 
 export default function AccountPage() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -89,17 +89,16 @@ export default function AccountPage() {
                           return;
                         }
                         const cents = Math.round(amt * 100);
-                        const res = await creditWallet(cents);
-                        setBalanceCents(res.balanceCents);
-                        setTopUpUsd(amt.toFixed(2));
+                        const { url } = await startTopupCheckout(cents);
+                        if (url) window.location.href = url;
                       } catch (e) {
                         console.error(e);
-                        setTopUpErr('Top up failed');
+                        setTopUpErr('Failed to start checkout');
                       } finally {
                         setBusy(false);
                       }
                     }}
-                  >Top up</button>
+                  >Pay with card</button>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -117,6 +116,31 @@ export default function AccountPage() {
                     className="btn btn-xs btn-outline rounded-full"
                     onClick={() => setTopUpUsd('20.00')}
                   >$20</button>
+                </div>
+                <div className="text-xs text-base-content/60">Legacy: Admin credit
+                  <button
+                    className="btn btn-ghost btn-xs ml-2"
+                    onClick={async () => {
+                      try {
+                        setTopUpErr(null);
+                        setBusy(true);
+                        const amt = Number.parseFloat(topUpUsd);
+                        if (!Number.isFinite(amt) || amt <= 0) {
+                          setTopUpErr('Enter a valid amount');
+                          return;
+                        }
+                        const cents = Math.round(amt * 100);
+                        const res = await creditWallet(cents);
+                        setBalanceCents(res.balanceCents);
+                        setTopUpUsd(amt.toFixed(2));
+                      } catch (e) {
+                        console.error(e);
+                        setTopUpErr('Top up failed');
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >Credit wallet</button>
                 </div>
                 {topUpErr && <div className="text-xs text-error">{topUpErr}</div>}
               </div>

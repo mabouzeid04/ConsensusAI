@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 interface CreateComparisonParams {
   clientId: string;
   prompt: string;
+  title?: string | null;
   generators?: string[];
   judges?: string[];
   data: any;
@@ -12,12 +13,13 @@ interface CreateComparisonParams {
 }
 
 export async function createComparison(params: CreateComparisonParams) {
-  const { clientId, prompt, generators = [], judges = [], data, userId = null } = params;
+  const { clientId, prompt, title = null, generators = [], judges = [], data, userId = null } = params;
   const created = await prisma.comparison.create({
     data: {
       clientId,
       userId: userId || undefined,
       prompt,
+      title: title || undefined,
       generators: generators as unknown as any,
       judges: judges as unknown as any,
       data: data as unknown as any,
@@ -39,6 +41,7 @@ export async function listComparisons(clientId: string, userId?: string | null) 
     select: {
       id: true,
       prompt: true,
+      title: true,
       createdAt: true,
       data: true,
     },
@@ -58,6 +61,7 @@ export async function listComparisons(clientId: string, userId?: string | null) 
     return {
       id: row.id,
       prompt: row.prompt,
+      title: (row as any).title || null,
       createdAt: row.createdAt,
       summary: { numResponses, bestAverage },
     };
@@ -73,12 +77,13 @@ export async function getComparison(id: string, clientId: string, userId?: strin
         ...(userId ? [{ userId }] : []),
       ],
     },
-    select: { id: true, prompt: true, data: true, createdAt: true },
+    select: { id: true, prompt: true, title: true, data: true, createdAt: true },
   });
   if (!row) return null;
   return {
     id: row.id,
     prompt: row.prompt,
+    title: (row as any).title || null,
     createdAt: row.createdAt,
     ...(row.data as any),
   };

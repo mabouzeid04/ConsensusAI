@@ -5,7 +5,19 @@ import { useCallback, useEffect, useState } from 'react';
 type Theme = 'light' | 'dark';
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>('light');
+  const getInitialTheme = (): Theme => {
+    try {
+      if (typeof document !== 'undefined') {
+        const attr = document.documentElement.getAttribute('data-theme') as Theme | null;
+        const stored = (typeof localStorage !== 'undefined' ? localStorage.getItem('theme') as Theme | null : null);
+        const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return stored || attr || (prefersDark ? 'dark' : 'light');
+      }
+    } catch {}
+    return 'light';
+  };
+
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
     try {
