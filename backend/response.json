@@ -1,0 +1,21 @@
+* Host localhost:5051 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:5051...
+* Connected to localhost (::1) port 5051
+> POST /api/prompt/submit HTTP/1.1
+> Host: localhost:5051
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Cookie: auth=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWk2bGRhNXYwMDAwY2N6ODU5MXJ3anR3IiwiZW1haWwiOiJ0ZXN0dXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTc2MzU5MjM4MCwiZXhwIjoxNzY0MTk3MTgwfQ.Ol1PLfYoZ1XH4gJay3_Al55dmF8DFY2gmSYGTTD5Nx4
+> Content-Type: application/json
+> Content-Length: 34
+> 
+} [34 bytes data]
+* upload completely sent off: 34 bytes
+* Empty reply from server
+100    34    0     0  100    34      0    524 --:--:-- --:--:-- --:--:--   531
+* Closing connection
+curl: (52) Empty reply from server

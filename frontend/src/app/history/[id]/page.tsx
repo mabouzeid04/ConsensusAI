@@ -21,6 +21,7 @@ interface ResponseItem {
 interface ComparisonDetail {
   id: string;
   prompt: string;
+  title?: string | null;
   createdAt: string;
   responsesWithEvaluations: ResponseItem[];
 }
@@ -65,7 +66,10 @@ export default function HistoryDetailPage() {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="bg-base-100 rounded-2xl shadow-xl p-8 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-base-content">Original Prompt</h2>
+            <div>
+              {data.title && <h1 className="text-3xl font-bold text-base-content mb-1">{data.title}</h1>}
+              <h2 className="text-2xl font-bold text-base-content">Original Prompt</h2>
+            </div>
             <div className="text-sm text-base-content/60">{new Date(data.createdAt).toLocaleString(undefined, {
               year: 'numeric',
               month: 'short',
